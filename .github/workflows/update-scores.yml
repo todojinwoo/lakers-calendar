@@ -1,0 +1,37 @@
+name: Update final scores
+
+on:
+  schedule:
+    # Every 3 hours. Late West Coast games end around 1 am Eastern,
+    # so each morning's runs pick up the previous night's finals.
+    - cron: "17 */3 * * *"
+  workflow_dispatch: {}   # adds a "Run workflow" button on the Actions tab
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-scores
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch final scores
+        run: python3 update_scores.py
+
+      - name: Save scores.json if anything changed
+        run: |
+          git add scores.json
+          if git diff --cached --quiet; then
+            echo "No new final scores."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Update final scores"
+          git push
