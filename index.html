@@ -50,7 +50,7 @@
 * { box-sizing: border-box; }
 body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
 .wrap {
-  max-width: 980px; margin: 0 auto;
+  max-width: 1200px; margin: 0 auto;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: 28px 48px;
@@ -192,6 +192,41 @@ button, input { font: inherit; color: inherit; }
   .games li.row { grid-template-columns: 52px minmax(0, 1fr) auto; gap: 10px; padding: 10px 12px; }
 }
 
+/* Calendar + final scores layout */
+.layout { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); grid-template-areas: "cal" "side" "list"; }
+.area-cal { grid-area: cal; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.area-list { grid-area: list; min-width: 0; }
+.side { grid-area: side; min-width: 0; }
+@media (min-width: 1000px) {
+  .layout { grid-template-columns: minmax(0, 1fr) 310px; grid-template-areas: "cal side" "list side"; align-items: start; }
+  .side { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); max-height: calc(100vh - 32px); overflow-y: auto; }
+}
+.side-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.side-head { padding: 14px 14px 10px; border-bottom: 1px solid var(--line); }
+.side-head h3 { margin: 0; font-family: var(--font-display); font-weight: 800; font-size: 24px; text-transform: uppercase; letter-spacing: .02em; line-height: 1; }
+.side-head p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.finals { list-style: none; margin: 0; padding: 0; }
+.finals li + li { border-top: 1px solid var(--line); }
+.final {
+  width: 100%; display: grid; grid-template-columns: 4px minmax(0, 1fr) auto; gap: 10px; align-items: center;
+  padding: 10px 14px 10px 0; background: transparent; border: 0; text-align: left; cursor: pointer;
+}
+.final:hover { background: var(--bg); }
+.final .bar { align-self: stretch; background: var(--tc); border-radius: 0 2px 2px 0; }
+.final .when { font-family: var(--font-data); font-weight: 600; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.final .ln { display: flex; justify-content: space-between; gap: 10px; font-variant-numeric: tabular-nums; }
+.final .ln span:last-child { font-family: var(--font-data); font-weight: 600; font-size: 17px; }
+.final .ln.win { font-weight: 700; }
+.final .ln.win span:last-child { font-weight: 700; }
+.final .ln.loss { color: var(--muted); }
+.wl { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 5px; font-family: var(--font-data); font-weight: 700; font-size: 13px; }
+.wl.w { background: var(--tc); color: var(--on-team); }
+.wl.l { border: 1.5px solid var(--tc); color: var(--tc); }
+.side-empty { padding: 16px 14px; color: var(--muted); font-size: 14px; }
+.side-more { width: 100%; padding: 10px; border: 0; border-top: 1px solid var(--line); background: transparent; cursor: pointer; font-family: var(--font-data); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; font-size: 13px; color: var(--accent); }
+.g .res { font-weight: 700; margin-right: 3px; }
+.g-meta .score { display: inline-flex; align-items: center; gap: 6px; }
+
 .note { color: var(--muted); font-size: 13px; max-width: 72ch; }
 .note p { margin: 0 0 6px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
@@ -231,7 +266,8 @@ button, input { font: inherit; color: inherit; }
 
   <section class="next" id="next" aria-live="polite"></section>
 
-  <section aria-label="Monthly calendar" style="display:flex;flex-direction:column;gap:14px">
+  <div class="layout">
+  <section class="area-cal" aria-label="Monthly calendar">
     <div class="month-bar">
       <button class="nav-btn" id="prev" type="button" aria-label="Previous month">‹</button>
       <div class="month-title">
@@ -246,14 +282,27 @@ button, input { font: inherit; color: inherit; }
     </div>
   </section>
 
-  <section>
+  <aside class="side" aria-label="Final scores">
+    <div class="side-card">
+      <div class="side-head">
+        <h3>Final scores</h3>
+        <p id="scores-note">Loading scores…</p>
+      </div>
+      <ul class="finals" id="finals"></ul>
+      <button type="button" class="side-more" id="finals-more" hidden>Show more</button>
+    </div>
+  </aside>
+
+  <section class="area-list">
     <h3 class="list-head" id="list-head">Games this month</h3>
     <ul class="games" id="games"></ul>
   </section>
+  </div>
 
   <footer class="note">
     <p>Every team has 80 dated games. Each team's last two are NBA Cup knockout-week games the league schedules in early December, after group play ends.</p>
-    <p>National TV channels are listed for Lakers games. Your team picks are saved in this browser. Use ← and → to change months.</p>
+    <p>Final scores update every few hours, so last night's results show up by morning. National TV channels are listed for Lakers games.</p>
+    <p>Your team picks are saved in this browser. Use ← and → to change months.</p>
   </footer>
 </div>
 
@@ -287,7 +336,7 @@ button, input { font: inherit; color: inherit; }
 "1020|PHI|NYK|1140",
 "1020|OKC|SAS|1290",
 "1021|MIN|MIA|1170",
-"1021|GSW|LAL|1320||ESPN",
+"1021|GSW|LAL|1320",
 "1021|SAC|LAC|1350",
 "1021|PHX|POR|1320",
 "1021|DAL|HOU|1230",
@@ -335,7 +384,7 @@ button, input { font: inherit; color: inherit; }
 "1026|DAL|MIA|1170",
 "1026|MIN|CLE|1140",
 "1026|WAS|CHA|1140",
-"1027|POR|LAL|1380||NBC",
+"1027|POR|LAL|1380",
 "1027|SAC|SAS|1200",
 "1027|DET|NYK|1200",
 "1027|BKN|BOS|1170",
@@ -362,7 +411,7 @@ button, input { font: inherit; color: inherit; }
 "1030|IND|MIA|1200|c",
 "1030|HOU|DAL|1200|c",
 "1030|LAC|MIN|1200|c",
-"1030|LAL|GSW|1320|c|Prime",
+"1030|LAL|GSW|1320|c",
 "1030|DEN|PHX|1320|c",
 "1031|OKC|HOU|1230",
 "1031|SAC|MEM|1200",
@@ -413,7 +462,7 @@ button, input { font: inherit; color: inherit; }
 "1106|OKC|MEM|1200|c",
 "1106|MIN|NOP|1200|c",
 "1106|TOR|MIL|1200|c",
-"1106|POR|LAL|1320|c|Prime",
+"1106|POR|LAL|1320|c",
 "1106|SAS|SAC|1320|c",
 "1107|SAS|POR|1320",
 "1107|HOU|PHX|1260",
@@ -560,7 +609,7 @@ button, input { font: inherit; color: inherit; }
 "1127|ATL|BOS|1200|c",
 "1127|MEM|MIN|1230|c",
 "1127|DAL|PHX|1260|c",
-"1127|LAL|SAS|1290|c|Prime",
+"1127|LAL|SAS|1290|c",
 "1127|DEN|UTA|1290|c",
 "1127|NOP|LAC|1290|c",
 "1127|GSW|POR|1290|c",
@@ -582,7 +631,7 @@ button, input { font: inherit; color: inherit; }
 "1130|NOP|SAC|1320",
 "1130|SAS|MIL|1200",
 "1130|BOS|DAL|1200",
-"1130|LAL|HOU|1170||Peacock",
+"1130|LAL|HOU|1170",
 "1130|OKC|BKN|1170",
 "1130|DEN|DET|1140",
 "1130|WAS|CHA|1140",
@@ -635,7 +684,7 @@ button, input { font: inherit; color: inherit; }
 "1214|TOR|CHA|1140",
 "1215|DEN|POR|1380",
 "1215|SAS|CLE|1200",
-"1216|LAL|MIN|1290||ESPN",
+"1216|LAL|MIN|1290",
 "1216|MIL|HOU|1230",
 "1216|SAC|OKC|1200",
 "1216|NYK|NOP|1200",
@@ -692,7 +741,7 @@ button, input { font: inherit; color: inherit; }
 "1222|DAL|GSW|1350",
 "1223|GSW|LAC|1350",
 "1223|DAL|SAC|1320",
-"1223|DEN|LAL|1320||Prime",
+"1223|DEN|LAL|1320",
 "1223|IND|PHX|1260",
 "1223|OKC|NOP|1200",
 "1223|MIN|MIL|1200",
@@ -707,7 +756,7 @@ button, input { font: inherit; color: inherit; }
 "1223|CHA|ORL|1140",
 "1225|SAS|NYK|720",
 "1225|MIA|BOS|870",
-"1225|PHI|LAL|1020||ABC",
+"1225|PHI|LAL|1020",
 "1225|OKC|MIN|1200",
 "1225|DEN|GSW|1350",
 "1226|MEM|LAC|1350",
@@ -734,7 +783,7 @@ button, input { font: inherit; color: inherit; }
 "1228|GSW|PHX|1260",
 "1228|CLE|BOS|1200",
 "1228|NOP|TOR|1170",
-"1229|HOU|LAL|1350||NBC",
+"1229|HOU|LAL|1350",
 "1229|PHI|SAC|1320",
 "1229|BKN|POR|1320",
 "1229|MIL|OKC|1200",
@@ -804,7 +853,7 @@ button, input { font: inherit; color: inherit; }
 "0106|UTA|BKN|1170",
 "0107|CHI|SAC|1320",
 "0107|DET|GSW|1320",
-"0107|BOS|LAL|1320||Prime",
+"0107|BOS|LAL|1320",
 "0107|MEM|HOU|1230",
 "0107|POR|DAL|1200",
 "0107|LAC|MIL|1200",
@@ -836,7 +885,7 @@ button, input { font: inherit; color: inherit; }
 "0110|DAL|MEM|1080",
 "0110|UTA|DET|1080",
 "0110|SAS|ATL|900",
-"0111|LAL|LAC|1320||Peacock",
+"0111|LAL|LAC|1320",
 "0111|CLE|MIN|1200",
 "0111|DEN|NYK|1170",
 "0111|HOU|BOS|1170",
@@ -912,7 +961,7 @@ button, input { font: inherit; color: inherit; }
 "0120|IND|BOS|1170",
 "0120|POR|ATL|1140",
 "0120|CHI|BKN|1140",
-"0121|LAL|GSW|1320||Prime",
+"0121|LAL|GSW|1320",
 "0121|WAS|DEN|1260",
 "0121|CLE|BKN|1170",
 "0121|PHI|BOS|1170",
@@ -948,7 +997,7 @@ button, input { font: inherit; color: inherit; }
 "0125|LAC|PHI|1140",
 "0125|TOR|BOS|1140",
 "0125|ORL|CHA|1140",
-"0126|OKC|LAL|1380||NBC",
+"0126|OKC|LAL|1380",
 "0126|WAS|POR|1320",
 "0126|MIL|UTA|1260",
 "0126|HOU|SAS|1200",
@@ -979,7 +1028,7 @@ button, input { font: inherit; color: inherit; }
 "0129|PHX|BOS|1170",
 "0129|CLE|TOR|1140",
 "0130|MEM|UTA|1290",
-"0130|LAL|NYK|1230||ABC",
+"0130|LAL|NYK|1230",
 "0130|ATL|MIL|1200",
 "0130|NOP|CLE|1170",
 "0130|WAS|IND|1140",
@@ -997,7 +1046,7 @@ button, input { font: inherit; color: inherit; }
 "0202|SAS|LAC|1350",
 "0202|OKC|DEN|1260",
 "0202|TOR|DAL|1200",
-"0202|LAL|BOS|1200||NBC",
+"0202|LAL|BOS|1200",
 "0202|CHA|MIA|1170",
 "0202|NOP|ORL|1140",
 "0202|CHI|DET|1140",
@@ -1024,7 +1073,7 @@ button, input { font: inherit; color: inherit; }
 "0205|GSW|CHA|1140",
 "0205|BOS|ATL|1140",
 "0206|PHX|SAC|1320",
-"0206|LAL|SAS|1230||ABC",
+"0206|LAL|SAS|1230",
 "0206|NOP|CHI|1200",
 "0206|MIL|TOR|1170",
 "0206|ORL|CLE|1170",
@@ -1040,7 +1089,7 @@ button, input { font: inherit; color: inherit; }
 "0207|UTA|MIN|930",
 "0207|GSW|DET|900",
 "0207|DEN|ATL|900",
-"0208|LAL|PHX|1290||Peacock",
+"0208|LAL|PHX|1290",
 "0208|POR|MEM|1200",
 "0208|ORL|MIL|1200",
 "0208|CHI|WAS|1140",
@@ -1057,7 +1106,7 @@ button, input { font: inherit; color: inherit; }
 "0209|MIN|BKN|1170",
 "0209|DEN|BOS|1170",
 "0209|TOR|CLE|1140",
-"0210|LAC|LAL|1320||ESPN",
+"0210|LAC|LAL|1320",
 "0210|DET|PHX|1260",
 "0210|ORL|MEM|1200",
 "0210|GSW|BOS|1170",
@@ -1071,7 +1120,7 @@ button, input { font: inherit; color: inherit; }
 "0211|NYK|PHI|1140",
 "0211|MIL|CHA|1140",
 "0211|UTA|IND|1140",
-"0212|DEN|LAL|1350||ESPN",
+"0212|DEN|LAL|1350",
 "0212|HOU|NOP|1200",
 "0212|LAC|MEM|1200",
 "0212|MIN|BOS|1200",
@@ -1120,7 +1169,7 @@ button, input { font: inherit; color: inherit; }
 "0217|MIL|CLE|1140",
 "0217|TOR|CHA|1140",
 "0218|IND|POR|1320",
-"0218|HOU|LAL|1320||Prime",
+"0218|HOU|LAL|1320",
 "0218|BOS|MEM|1200",
 "0218|SAS|MIN|1170",
 "0225|UTA|LAC|1350",
@@ -1134,7 +1183,7 @@ button, input { font: inherit; color: inherit; }
 "0225|MIA|DET|1140",
 "0225|SAC|CLE|1140",
 "0226|DAL|POR|1320",
-"0226|LAL|DEN|1320||ESPN",
+"0226|LAL|DEN|1320",
 "0226|CHA|HOU|1230",
 "0226|MEM|SAS|1200",
 "0226|IND|MIN|1200",
@@ -1153,7 +1202,7 @@ button, input { font: inherit; color: inherit; }
 "0228|SAC|CHA|1140",
 "0228|ATL|ORL|990",
 "0228|TOR|IND|960",
-"0228|LAL|DAL|930||ABC",
+"0228|LAL|DAL|930",
 "0228|DEN|SAS|780",
 "0301|WAS|PHX|1290",
 "0301|BKN|DEN|1260",
@@ -1184,7 +1233,7 @@ button, input { font: inherit; color: inherit; }
 "0304|MEM|ATL|1170",
 "0304|POR|CLE|1140",
 "0304|IND|ORL|1140",
-"0304|LAL|PHI|1140||Prime",
+"0304|LAL|PHI|1140",
 "0305|SAS|HOU|1290",
 "0305|MIN|PHX|1260",
 "0305|MIL|NOP|1200",
@@ -1192,7 +1241,7 @@ button, input { font: inherit; color: inherit; }
 "0305|BOS|DET|1140",
 "0305|UTA|ORL|1140",
 "0306|LAC|SAC|1320",
-"0306|OKC|LAL|1230||ABC",
+"0306|OKC|LAL|1230",
 "0306|NOP|MEM|1200",
 "0306|UTA|WAS|1140",
 "0306|ATL|CLE|1050",
@@ -1228,7 +1277,7 @@ button, input { font: inherit; color: inherit; }
 "0310|ORL|MIA|1140",
 "0310|NOP|CHA|1140",
 "0311|CLE|LAC|1350",
-"0311|NYK|LAL|1320||Prime",
+"0311|NYK|LAL|1320",
 "0311|WAS|DAL|1200",
 "0311|PHX|CHI|1200",
 "0311|BKN|ATL|1200",
@@ -1250,7 +1299,7 @@ button, input { font: inherit; color: inherit; }
 "0313|IND|HOU|1050",
 "0313|BKN|DET|900",
 "0313|ORL|ATL|900",
-"0314|GSW|LAL|1320||NBC",
+"0314|GSW|LAL|1320",
 "0314|WAS|MIN|1200",
 "0314|MIA|DEN|1170",
 "0314|CLE|SAC|1080",
@@ -1273,7 +1322,7 @@ button, input { font: inherit; color: inherit; }
 "0316|SAC|BOS|1170",
 "0316|NYK|WAS|1140",
 "0317|MIA|POR|1320",
-"0317|PHX|LAL|1320||ESPN",
+"0317|PHX|LAL|1320",
 "0317|MEM|GSW|1320",
 "0317|ATL|UTA|1260",
 "0317|BKN|HOU|1230",
@@ -1302,7 +1351,7 @@ button, input { font: inherit; color: inherit; }
 "0320|CHI|CLE|1170",
 "0320|DEN|ORL|1140",
 "0320|WAS|NYK|780",
-"0321|DAL|LAL|1320||NBC",
+"0321|DAL|LAL|1320",
 "0321|SAS|PHI|1170",
 "0321|DEN|MIA|1080",
 "0321|POR|PHX|1020",
@@ -1320,7 +1369,7 @@ button, input { font: inherit; color: inherit; }
 "0323|OKC|PHX|1380",
 "0323|TOR|POR|1320",
 "0323|PHI|UTA|1260",
-"0323|LAL|MIA|1200||NBC",
+"0323|LAL|MIA|1200",
 "0323|NOP|NYK|1170",
 "0323|BOS|BKN|1170",
 "0324|MIL|LAC|1350",
@@ -1360,7 +1409,7 @@ button, input { font: inherit; color: inherit; }
 "0328|BOS|NOP|1140",
 "0328|DAL|WAS|1080",
 "0328|UTA|CHA|1080",
-"0328|LAL|HOU|900||ESPN",
+"0328|LAL|HOU|900",
 "0328|MEM|BKN|900",
 "0328|NYK|ORL|750",
 "0329|DEN|SAC|1320",
@@ -1382,7 +1431,7 @@ button, input { font: inherit; color: inherit; }
 "0331|PHX|SAS|1200",
 "0331|SAC|MIN|1200",
 "0331|NOP|MIL|1200",
-"0401|LAL|OKC|1290||Prime",
+"0401|LAL|OKC|1290",
 "0401|CHA|NYK|1170",
 "0401|ORL|IND|1140",
 "0401|BOS|CLE|1140",
@@ -1400,7 +1449,7 @@ button, input { font: inherit; color: inherit; }
 "0402|PHI|WAS|1140",
 "0403|WAS|ORL|1140",
 "0403|NOP|OKC|1020",
-"0404|SAS|LAL|1320||NBC",
+"0404|SAS|LAL|1320",
 "0404|BOS|NYK|1170",
 "0404|GSW|SAC|1080",
 "0404|POR|UTA|1020",
@@ -1428,7 +1477,7 @@ button, input { font: inherit; color: inherit; }
 "0406|PHI|TOR|1170",
 "0406|IND|CHA|1140",
 "0407|DAL|POR|1320",
-"0407|MIN|LAL|1320||ESPN",
+"0407|MIN|LAL|1320",
 "0407|SAC|HOU|1230",
 "0407|WAS|MEM|1200",
 "0407|CHA|CHI|1200",
@@ -1491,9 +1540,57 @@ button, input { font: inherit; color: inherit; }
     return { key: y + "-" + pad(mm) + "-" + pad(dd), y: y, m: mm - 1, d: dd, away: p[1], home: p[2],
              et: +p[3], cup: p[4] === "c", tv: p[5] || "" };
   });
-  games.sort(function (a, b) { return a.key < b.key ? -1 : a.key > b.key ? 1 : a.et - b.et; });
   var byDate = {};
-  games.forEach(function (g) { (byDate[g.key] = byDate[g.key] || []).push(g); });
+  function indexGames() {
+    games.sort(function (a, b) { return a.key < b.key ? -1 : a.key > b.key ? 1 : (a.et == null ? 9999 : a.et) - (b.et == null ? 9999 : b.et); });
+    byDate = {};
+    games.forEach(function (g) { (byDate[g.key] = byDate[g.key] || []).push(g); });
+  }
+  indexGames();
+
+  /* Final scores live in scores.json, refreshed by the repo's "Update final scores" GitHub Action.
+     The raw GitHub copy is read first because it updates as soon as the Action commits. */
+  var SCORE_SOURCES = [
+    "https://raw.githubusercontent.com/todojinwoo/lakers-calendar/main/scores.json",
+    "scores.json"
+  ];
+  var scores = {}, scoresState = "loading", scoresUpdated = null, finalsShown = 10;
+  function gid(g) { return g.key + "|" + g.away + "|" + g.home; }
+  function result(g, team) {
+    var s = scores[gid(g)];
+    if (!s) return null;
+    var home = g.home === team, mine = home ? s.hs : s.as, theirs = home ? s.as : s.hs;
+    return { w: mine > theirs, mine: mine, theirs: theirs, ot: s.ot };
+  }
+  function scoreText(r) { return (r.w ? "W " : "L ") + r.mine + "–" + r.theirs + (r.ot ? " " + r.ot : ""); }
+
+  function loadScores(i) {
+    i = i || 0;
+    if (i >= SCORE_SOURCES.length) { scoresState = "none"; renderFinals(); return; }
+    var bucket = Math.floor(Date.now() / 600000);
+    fetch(SCORE_SOURCES[i] + "?v=" + bucket, { cache: "no-store" })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (data) {
+        if (!data || !Array.isArray(data.games)) throw new Error("bad file");
+        var known = {};
+        games.forEach(function (g) { known[gid(g)] = true; });
+        data.games.forEach(function (s) {
+          if (!TEAMS[s.a] || !TEAMS[s.h] || !/^\d{4}-\d\d-\d\d$/.test(s.d)) return;
+          var k = s.d + "|" + s.a + "|" + s.h;
+          scores[k] = { as: +s.as, hs: +s.hs, ot: s.ot || "" };
+          if (!known[k]) {          /* e.g. NBA Cup knockout games, which aren't dated in the schedule yet */
+            var p = s.d.split("-");
+            games.push({ key: s.d, y: +p[0], m: +p[1] - 1, d: +p[2], away: s.a, home: s.h, et: null, cup: false, tv: "", added: true });
+            known[k] = true;
+          }
+        });
+        indexGames();
+        scoresUpdated = data.updated ? new Date(data.updated) : null;
+        scoresState = "ok";
+        render();
+      })
+      .catch(function () { loadScores(i + 1); });
+  }
 
   var MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   var DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
@@ -1522,6 +1619,7 @@ button, input { font: inherit; color: inherit; }
   function pad(n) { return (n < 10 ? "0" : "") + n; }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function fmtTime(g) {
+    if (g.et == null) return "TBD";
     var m = g.et + OFFSET[tz];
     var h = Math.floor(m / 60), mm = m % 60, ap = h >= 12 ? "pm" : "am";
     var h12 = h % 12 === 0 ? 12 : h % 12;
@@ -1667,7 +1765,7 @@ button, input { font: inherit; color: inherit; }
     var grid = document.getElementById("grid");
     grid.innerHTML = "";
     var first = new Date(y, m, 1).getDay(), daysIn = new Date(y, m + 1, 0).getDate();
-    var multi = picks.length > 1;
+    var multi = picks.length > 1, narrow = matchMedia("(max-width: 640px)").matches;
     for (var b = 0; b < first; b++) grid.appendChild(el("div", "day blank"));
     for (var d = 1; d <= daysIn; d++) {
       var key = y + "-" + pad(m + 1) + "-" + pad(d);
@@ -1679,14 +1777,16 @@ button, input { font: inherit; color: inherit; }
         picks.forEach(function (p) {
           list.forEach(function (g) {
             if (g.home !== p.t && g.away !== p.t) return;
-            var home = g.home === p.t, opp = home ? g.away : g.home;
+            var home = g.home === p.t, opp = home ? g.away : g.home, r = result(g, p.t);
             if (g.cup) cup = true;
-            labels.push(TEAMS[p.t].name + (home ? " home vs " : " at ") + TEAMS[opp].full + " " + fmtTime(g) + " " + tz);
+            labels.push(TEAMS[p.t].name + (home ? " home vs " : " at ") + TEAMS[opp].full + ", " +
+              (r ? (r.w ? "won " : "lost ") + r.mine + " to " + r.theirs : fmtTime(g) + " " + tz));
             n++;
             if (n > 4) return;
             html += '<span class="g c' + p.c + ' ' + (home ? "home" : "away") + '">' +
+              (r && (multi || narrow) ? '<span class="res">' + (r.w ? "W" : "L") + '</span>' : "") +
               (multi ? '<span class="own">' + p.t + '</span>' : "") + (home ? "vs " : "@ ") + opp +
-              (!multi ? '<span class="tm">' + fmtTime(g) + '</span>' : "") + '</span>';
+              (!multi ? '<span class="tm">' + (r ? scoreText(r) : fmtTime(g)) + '</span>' : "") + '</span>';
           });
         });
         if (n > 4) html += '<span class="more">+' + (n - 4) + ' more</span>';
@@ -1722,12 +1822,67 @@ button, input { font: inherit; color: inherit; }
       mid += '<div class="sub">In ' + esc(TEAMS[g.home].city === "LA" ? "Los Angeles" : TEAMS[g.home].city) + (g.cup ? ' · <span class="cupnote">NBA Cup</span>' : "") + '</div>';
       li.innerHTML = '<div class="g-date">' + MONTHS[g.m].slice(0, 3) + " " + g.d + '<small>' + DOW[gd.getDay()] + '</small></div>' +
         '<div class="g-mid">' + mid + '</div>' +
-        '<div class="g-meta">' + fmtTime(g) + " " + tz + (g.tv ? '<small>' + esc(g.tv) + '</small>' : "") + '</div>';
+        '<div class="g-meta">' + metaFor(g, pa, ph) + '</div>';
       ul.appendChild(li);
     });
 
     renderChips();
     renderNext();
+    renderFinals();
+  }
+
+  function metaFor(g, pa, ph) {
+    var s = scores[gid(g)];
+    if (!s) return (g.et == null ? "Time TBD" : fmtTime(g) + " " + tz) + (g.tv ? '<small>' + esc(g.tv) + '</small>' : "");
+    var label = "Final" + (s.ot ? "/" + s.ot : "");
+    if (pa && ph) return g.away + " " + s.as + ", " + g.home + " " + s.hs + '<small>' + label + '</small>';
+    var p = ph || pa, r = result(g, p.t);
+    return '<span class="score"><span class="wl c' + p.c + ' ' + (r.w ? "w" : "l") + '">' + (r.w ? "W" : "L") + '</span>' +
+      r.mine + "–" + r.theirs + '</span><small>' + label + '</small>';
+  }
+
+  function renderFinals() {
+    var ul = document.getElementById("finals"), note = document.getElementById("scores-note"), more = document.getElementById("finals-more");
+    ul.innerHTML = ""; more.hidden = true;
+    if (scoresState === "loading") { note.textContent = "Loading scores…"; return; }
+    if (scoresState === "none") {
+      note.textContent = "Scores aren't available right now.";
+      ul.appendChild(el("li", "side-empty", "Final scores load from your site's scores file, which updates a few hours after each game."));
+      return;
+    }
+    note.textContent = scoresUpdated ? "Updated " + scoresUpdated.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "Waiting for the first games";
+    if (!picks.length) { ul.appendChild(el("li", "side-empty", "Add a team to see its final scores.")); return; }
+    var done = games.filter(function (g) { return scores[gid(g)] && (pickOf(g.home) || pickOf(g.away)); }).reverse();
+    if (!done.length) {
+      ul.appendChild(el("li", "side-empty", "No final scores yet for your teams. Results show up here the morning after each game."));
+      return;
+    }
+    done.slice(0, finalsShown).forEach(function (g) {
+      var s = scores[gid(g)], pa = pickOf(g.away), ph = pickOf(g.home), p = ph || pa;
+      var gd = new Date(g.y, g.m, g.d), awayWon = s.as > s.hs;
+      var wl = "";
+      if (!(pa && ph)) { var r = result(g, p.t); wl = '<span class="wl c' + p.c + ' ' + (r.w ? "w" : "l") + '">' + (r.w ? "W" : "L") + '</span>'; }
+      var li = el("li");
+      var b = el("button", "final c" + p.c);
+      b.type = "button";
+      b.innerHTML = '<span class="bar"></span><div>' +
+        '<div class="when">' + DOW[gd.getDay()] + ", " + MONTHS[g.m].slice(0, 3) + " " + g.d + (s.ot ? " · " + s.ot : "") + '</div>' +
+        '<div class="ln ' + (awayWon ? "win" : "loss") + '"><span>' + esc(TEAMS[g.away].name) + '</span><span>' + s.as + '</span></div>' +
+        '<div class="ln ' + (awayWon ? "loss" : "win") + '"><span>' + esc(TEAMS[g.home].name) + '</span><span>' + s.hs + '</span></div>' +
+        '</div>' + wl;
+      b.setAttribute("aria-label", TEAMS[g.away].full + " " + s.as + ", " + TEAMS[g.home].full + " " + s.hs + (s.ot ? ", " + s.ot : "") + ", " + MONTHS[g.m] + " " + g.d + ". Show on calendar.");
+      b.addEventListener("click", function () { showGame(g); });
+      li.appendChild(b); ul.appendChild(li);
+    });
+    if (done.length > finalsShown) { more.hidden = false; more.textContent = "Show " + Math.min(10, done.length - finalsShown) + " more"; }
+  }
+  document.getElementById("finals-more").addEventListener("click", function () { finalsShown += 10; renderFinals(); });
+
+  function showGame(g) {
+    SEASON.forEach(function (ym, i) { if (ym[0] === g.y && ym[1] === g.m) idx = i; });
+    render();
+    var cell = document.querySelector('.day[data-key="' + g.key + '"]');
+    if (cell) cell.click();
   }
 
   function onPick(e) {
@@ -1751,7 +1906,11 @@ button, input { font: inherit; color: inherit; }
     b.addEventListener("click", function () { tz = b.dataset.tz; save(); render(); });
   });
 
+  var mq = matchMedia("(max-width: 640px)");
+  if (mq.addEventListener) mq.addEventListener("change", render);
+
   render();
+  loadScores();
 })();
 </script>
 
