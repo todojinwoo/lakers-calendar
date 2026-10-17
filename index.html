@@ -5,168 +5,206 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#552583">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Lakers">
+<meta name="apple-mobile-web-app-title" content="NBA Calendar">
 <title>Lakers Game Calendar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
 <style>
-/* Layout: a single scoreboard-style column — next-game strip, month header with arrows, 7-day grid, then the month's game list */
+/* Layout: one scoreboard column — team search + chips, next games, month header, 7-day grid, then the month's game list.
+   Color = which team; solid chip = home game, outlined chip = road game. */
 :root {
   --bg: #f6f4fa;
   --surface: #ffffff;
   --ink: #1d1430;
-  --muted: #6c6482;
+  --muted: #6b6381;
   --line: #e3dfec;
-  --purple: #552583;
-  --purple-ink: #ffffff;
+  --accent: #552583;
   --gold: #fdb927;
-  --gold-ink: #1d1430;
-  --cup: #b8860b;
+  --cup: #b07a06;
   --focus: #7a3fc0;
+  --on-team: #ffffff;
+  /* team slots, in the order teams are added */
+  --t0: #552583; --t1: #0b7a75; --t2: #c2410c; --t3: #1d4ed8;
+  --t4: #be185d; --t5: #4d7c0f; --t6: #8a5a00; --t7: #475569;
   --font-display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
   --font-body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-data: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #110c1b; --surface: #1b1428; --ink: #eee9f6; --muted: #a59cba; --line: #2e2541;
-    --purple: #6a32a3; --purple-ink: #ffffff; --gold: #fdb927; --gold-ink: #1d1430;
-    --cup: #e7b84a; --focus: #c9a2ff; color-scheme: dark;
+    --bg: #110c1b; --surface: #1b1428; --ink: #eee9f6; --muted: #a59cba; --line: #30264a;
+    --accent: #c9a2ff; --gold: #fdb927; --cup: #e7b84a; --focus: #c9a2ff; --on-team: #ffffff;
+    --t0: #7b45b8; --t1: #13918b; --t2: #d9581f; --t3: #3b6ae6;
+    --t4: #d0337a; --t5: #5f8f1c; --t6: #a77412; --t7: #64748b;
+    color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #110c1b; --surface: #1b1428; --ink: #eee9f6; --muted: #a59cba; --line: #2e2541;
-  --purple: #6a32a3; --purple-ink: #ffffff; --gold: #fdb927; --gold-ink: #1d1430;
-  --cup: #e7b84a; --focus: #c9a2ff; color-scheme: dark;
+  --bg: #110c1b; --surface: #1b1428; --ink: #eee9f6; --muted: #a59cba; --line: #30264a;
+  --accent: #c9a2ff; --gold: #fdb927; --cup: #e7b84a; --focus: #c9a2ff; --on-team: #ffffff;
+  --t0: #7b45b8; --t1: #13918b; --t2: #d9581f; --t3: #3b6ae6;
+  --t4: #d0337a; --t5: #5f8f1c; --t6: #a77412; --t7: #64748b;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
-body {
-  background: var(--bg); color: var(--ink);
-  font-family: var(--font-body); font-size: 15px; line-height: 1.5;
-}
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
 .wrap {
-  max-width: 920px; margin: 0 auto;
+  max-width: 980px; margin: 0 auto;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: 28px 48px;
   display: flex; flex-direction: column; gap: 20px;
 }
-button { font: inherit; color: inherit; }
+button, input { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
-/* Top strip */
+.c0 { --tc: var(--t0); } .c1 { --tc: var(--t1); } .c2 { --tc: var(--t2); } .c3 { --tc: var(--t3); }
+.c4 { --tc: var(--t4); } .c5 { --tc: var(--t5); } .c6 { --tc: var(--t6); } .c7 { --tc: var(--t7); }
+
+/* Header */
 .top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 20px; }
 .eyebrow { font-family: var(--font-data); font-weight: 600; letter-spacing: .14em; text-transform: uppercase; font-size: 13px; color: var(--muted); }
-.brand { font-family: var(--font-display); font-weight: 900; font-size: clamp(34px, 7vw, 52px); line-height: .95; letter-spacing: .01em; text-transform: uppercase; margin: 2px 0 0; text-wrap: balance; }
-.brand span { color: var(--purple); }
-:root[data-theme="dark"] .brand span { color: var(--gold); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .brand span { color: var(--gold); } }
-
+.brand { font-family: var(--font-display); font-weight: 900; font-size: clamp(34px, 7vw, 52px); line-height: .95; text-transform: uppercase; margin: 2px 0 0; text-wrap: balance; }
+.brand span { color: var(--accent); }
 .tz { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--surface); }
 .tz button { border: 0; background: transparent; padding: 5px 12px; border-radius: 999px; cursor: pointer; font-family: var(--font-data); font-weight: 600; font-size: 14px; letter-spacing: .06em; color: var(--muted); }
 .tz button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
 
-.next {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px;
-  background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px;
+/* Team picker */
+.picker { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.search { position: relative; }
+.search label { display: block; font-family: var(--font-data); font-weight: 700; text-transform: uppercase; letter-spacing: .12em; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.search input {
+  width: 100%; padding: 11px 14px 11px 38px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--bg); font-size: 16px;
 }
-.next .label { font-family: var(--font-data); font-weight: 700; text-transform: uppercase; letter-spacing: .12em; font-size: 12px; color: var(--muted); }
-.next .what { font-weight: 600; }
-.next .when { color: var(--muted); font-variant-numeric: tabular-nums; }
-.next .count { margin-left: auto; font-family: var(--font-data); font-weight: 700; font-size: 15px; }
+.search input:focus { outline: 2px solid var(--focus); outline-offset: 0; border-color: transparent; }
+.search .glass { position: absolute; left: 13px; bottom: 13px; width: 16px; height: 16px; color: var(--muted); pointer-events: none; }
+.results {
+  position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 20; margin: 0; padding: 6px; list-style: none;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px; max-height: 320px; overflow-y: auto;
+  box-shadow: 0 12px 32px rgb(0 0 0 / .18);
+}
+.results li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 7px; cursor: pointer; }
+.results li[aria-selected="true"] { background: var(--bg); }
+.results .ab { font-family: var(--font-data); font-weight: 700; width: 38px; color: var(--muted); letter-spacing: .04em; }
+.results .nm { flex: 1; min-width: 0; }
+.results .cf { font-size: 12px; color: var(--muted); font-family: var(--font-data); letter-spacing: .08em; text-transform: uppercase; }
+.results .st { font-family: var(--font-data); font-weight: 600; font-size: 13px; color: var(--muted); white-space: nowrap; }
+.results .st.on { color: var(--accent); }
+.results .none { color: var(--muted); cursor: default; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.chip {
+  display: inline-flex; align-items: center; gap: 8px; padding: 5px 6px 5px 12px; border-radius: 999px;
+  background: var(--tc); color: var(--on-team); font-weight: 600; font-size: 14px;
+}
+.chip button { border: 0; background: rgb(255 255 255 / .2); color: var(--on-team); width: 24px; height: 24px; border-radius: 50%; cursor: pointer; display: grid; place-items: center; font-size: 15px; line-height: 1; }
+.chip button:hover { background: rgb(255 255 255 / .35); }
+.chips .hint { color: var(--muted); font-size: 14px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { width: 22px; height: 14px; border-radius: 4px; display: inline-block; }
+.sw.home { background: var(--ink); }
+.sw.away { border: 2px solid var(--ink); }
+.sw.cup { width: 8px; height: 8px; border-radius: 50%; background: var(--cup); }
+
+/* Next games */
+.next { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
+.next-item { display: flex; gap: 10px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+.next-item .bar { width: 4px; align-self: stretch; border-radius: 2px; background: var(--tc); flex: none; }
+.next-item .txt { min-width: 0; }
+.next-item .lbl { font-family: var(--font-data); font-weight: 700; text-transform: uppercase; letter-spacing: .1em; font-size: 12px; color: var(--muted); }
+.next-item .what { font-weight: 600; }
+.next-item .when { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+.next-item .count { margin-left: auto; font-family: var(--font-data); font-weight: 700; white-space: nowrap; }
 
 /* Month header */
 .month-bar { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; }
-.nav-btn {
-  width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface);
-  cursor: pointer; display: grid; place-items: center; font-size: 20px; line-height: 1;
-}
-.nav-btn:hover:not(:disabled) { border-color: var(--purple); }
+.nav-btn { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); cursor: pointer; display: grid; place-items: center; font-size: 20px; line-height: 1; }
+.nav-btn:hover:not(:disabled) { border-color: var(--accent); }
 .nav-btn:disabled { opacity: .35; cursor: default; }
 .month-title { text-align: center; min-width: 0; }
 .month-title h2 { margin: 0; font-family: var(--font-display); font-weight: 800; font-size: clamp(30px, 6vw, 44px); line-height: 1; text-transform: uppercase; letter-spacing: .02em; }
 .month-title .sum { font-family: var(--font-data); font-weight: 500; font-size: 15px; color: var(--muted); font-variant-numeric: tabular-nums; }
 
-.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; justify-content: center; font-size: 14px; color: var(--muted); }
-.legend span { display: inline-flex; align-items: center; gap: 7px; }
-.sw { width: 16px; height: 16px; border-radius: 4px; display: inline-block; }
-.sw.home { background: var(--gold); }
-.sw.away { background: var(--purple); }
-.sw.cup { width: 8px; height: 8px; border-radius: 50%; background: var(--cup); }
-
-/* Calendar grid */
+/* Calendar */
 .cal { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
 .dow, .grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
 .dow div { text-align: center; font-family: var(--font-data); font-weight: 600; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); padding-block: 4px 8px; }
 .day {
-  min-height: 92px; border-radius: 8px; padding: 6px 7px; border: 1px solid transparent;
-  display: flex; flex-direction: column; gap: 2px; text-align: left; background: transparent;
+  min-height: 92px; border-radius: 8px; padding: 6px; border: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 3px; text-align: left; background: transparent;
   font-variant-numeric: tabular-nums; position: relative; min-width: 0;
 }
 .day.blank { visibility: hidden; }
-.day .num { font-family: var(--font-data); font-weight: 600; font-size: 15px; color: var(--muted); }
-.day.game { cursor: pointer; }
-.day.home { background: var(--gold); color: var(--gold-ink); }
-.day.away { background: var(--purple); color: var(--purple-ink); }
-.day.game .num { color: inherit; opacity: .8; }
-.day .opp { font-family: var(--font-display); font-weight: 800; font-size: 22px; line-height: 1; letter-spacing: .02em; }
-.day .opp small { font-family: var(--font-data); font-weight: 600; font-size: 13px; margin-right: 3px; opacity: .85; }
-.day .tm { font-family: var(--font-data); font-weight: 600; font-size: 13px; opacity: .9; }
-.day .tag { font-family: var(--font-data); font-weight: 700; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; opacity: .85; margin-top: auto; }
-.day.cup::after { content: ""; position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--cup); box-shadow: 0 0 0 2px var(--surface); }
-.day.today { border-color: var(--ink); border-width: 2px; }
-.day.today:not(.game) .num { color: var(--ink); font-weight: 700; }
-.day.game:hover { filter: brightness(1.06); }
-.day.selected { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--ink); }
-
+.day.empty { border-color: transparent; }
+.day .num { font-family: var(--font-data); font-weight: 600; font-size: 15px; color: var(--muted); line-height: 1.1; }
+.day.has { cursor: pointer; }
+.day.has:hover { border-color: var(--muted); }
+.day.today { border: 2px solid var(--ink); }
+.day.today .num { color: var(--ink); font-weight: 700; }
+.day.selected { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent); }
+.day.cup::after { content: ""; position: absolute; top: 8px; right: 8px; width: 7px; height: 7px; border-radius: 50%; background: var(--cup); }
+.g {
+  display: block; border-radius: 5px; padding: 2px 5px; font-family: var(--font-data); font-weight: 700; font-size: 14px; line-height: 1.25;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: .02em;
+}
+.g.home { background: var(--tc); color: var(--on-team); border: 2px solid var(--tc); }
+.g.away { color: var(--tc); border: 2px solid var(--tc); background: var(--surface); }
+.g .own { opacity: .8; font-weight: 600; margin-right: 3px; }
+.g .tm { font-weight: 500; opacity: .85; margin-left: 4px; }
+.more { font-family: var(--font-data); font-size: 12px; font-weight: 600; color: var(--muted); }
+@media (max-width: 640px) {
+  .g .own, .g .tm { display: none; }
+}
 @media (max-width: 560px) {
   .cal { padding: 6px; }
   .dow, .grid { gap: 3px; }
-  .day { min-height: 60px; padding: 4px; }
-  .day .opp { font-size: 16px; }
-  .day .opp small { display: block; font-size: 11px; margin: 0; }
-  .day .tm, .day .tag { display: none; }
-  .day.cup::after { top: 5px; right: 5px; width: 6px; height: 6px; }
+  .day { min-height: 62px; padding: 3px; gap: 2px; }
+  .g { font-size: 11px; padding: 1px 3px; border-width: 1.5px; border-radius: 4px; }
+  .day.cup::after { top: 4px; right: 4px; width: 6px; height: 6px; }
 }
 
 /* Game list */
-.list-head { font-family: var(--font-data); font-weight: 700; text-transform: uppercase; letter-spacing: .12em; font-size: 13px; color: var(--muted); margin: 6px 0 0; }
+.list-head { font-family: var(--font-data); font-weight: 700; text-transform: uppercase; letter-spacing: .12em; font-size: 13px; color: var(--muted); margin: 6px 0 8px; }
 .games { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden; }
-.games li { display: grid; grid-template-columns: 74px 64px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 14px; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; transition: background .2s; }
-.games li:first-child { border-top: 0; }
+.games li.row { display: grid; grid-template-columns: 70px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 14px; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; transition: background .25s; }
+.games li.row:first-child { border-top: 0; }
 .games li.flash { background: color-mix(in srgb, var(--gold) 22%, var(--surface)); }
 .g-date { font-family: var(--font-data); font-weight: 600; font-size: 15px; }
 .g-date small { display: block; color: var(--muted); font-weight: 500; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
-.pill { font-family: var(--font-data); font-weight: 700; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; text-align: center; padding: 3px 8px; border-radius: 999px; }
-.pill.home { background: var(--gold); color: var(--gold-ink); }
-.pill.away { background: var(--purple); color: var(--purple-ink); }
-.g-opp { min-width: 0; }
-.g-opp b { font-weight: 600; }
-.g-opp .venue { display: block; color: var(--muted); font-size: 13px; }
+.g-mid { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.g-mid .line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.g-mid b { font-weight: 600; }
+.pill { font-family: var(--font-data); font-weight: 700; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; border: 1.5px solid var(--tc); }
+.pill.home { background: var(--tc); color: var(--on-team); }
+.pill.away { color: var(--tc); }
+.pill.both { border-color: var(--muted); color: var(--muted); }
+.team-name { color: var(--tc); font-weight: 700; }
+.sub { color: var(--muted); font-size: 13px; }
+.cupnote { color: var(--cup); font-weight: 600; }
 .g-meta { text-align: right; font-family: var(--font-data); font-weight: 600; font-size: 15px; white-space: nowrap; }
 .g-meta small { display: block; color: var(--muted); font-weight: 500; font-size: 12px; letter-spacing: .06em; }
-.cupnote { color: var(--cup); font-weight: 600; }
+.empty-msg { padding: 18px 14px; color: var(--muted); }
 @media (max-width: 560px) {
-  .games li { grid-template-columns: 56px minmax(0, 1fr) auto; gap: 10px; padding: 10px 12px; }
-  .games li .pill { display: none; }
+  .games li.row { grid-template-columns: 52px minmax(0, 1fr) auto; gap: 10px; padding: 10px 12px; }
 }
-.empty { padding: 18px 14px; color: var(--muted); }
 
-.note { color: var(--muted); font-size: 13px; max-width: 70ch; }
+.note { color: var(--muted); font-size: 13px; max-width: 72ch; }
 .note p { margin: 0 0 6px; }
-
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 
 </head>
 <body>
-<noscript><p style="padding:16px;font-family:system-ui">This calendar needs JavaScript. Open the file in Safari or Chrome instead of an email or file preview.</p></noscript>
+<noscript><p style="padding:16px;font-family:system-ui">This calendar needs JavaScript. Open it in Safari or Chrome instead of an email or file preview.</p></noscript>
 <div class="wrap">
   <header class="top">
     <div>
-      <div class="eyebrow">Regular season · Oct 2026 – Apr 2027</div>
-      <h1 class="brand">Los Angeles <span>Lakers</span></h1>
+      <div class="eyebrow">NBA regular season · Oct 2026 – Apr 2027</div>
+      <h1 class="brand">Game <span>Calendar</span></h1>
     </div>
     <div class="tz" role="group" aria-label="Time zone">
       <button type="button" id="tz-et" data-tz="ET">ET</button>
@@ -174,6 +212,22 @@ button { font: inherit; color: inherit; }
       <button type="button" id="tz-pt" data-tz="PT">PT</button>
     </div>
   </header>
+
+  <section class="picker" aria-label="Your teams">
+    <div class="search">
+      <label for="team-search">Add a team</label>
+      <input id="team-search" type="text" autocomplete="off" spellcheck="false" placeholder="Search by team or city, like Celtics or Boston"
+             role="combobox" aria-expanded="false" aria-controls="team-results" aria-autocomplete="list">
+      <svg class="glass" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <ul class="results" id="team-results" role="listbox" hidden></ul>
+    </div>
+    <div class="chips" id="chips" aria-live="polite"></div>
+    <div class="legend">
+      <span><i class="sw home"></i>Solid = home game</span>
+      <span><i class="sw away"></i>Outline = road game</span>
+      <span><i class="sw cup"></i>NBA Cup group game</span>
+    </div>
+  </section>
 
   <section class="next" id="next" aria-live="polite"></section>
 
@@ -185,11 +239,6 @@ button { font: inherit; color: inherit; }
         <div class="sum" id="month-sum"></div>
       </div>
       <button class="nav-btn" id="next-btn" type="button" aria-label="Next month">›</button>
-    </div>
-    <div class="legend">
-      <span><i class="sw home"></i>Home · Crypto.com Arena</span>
-      <span><i class="sw away"></i>Away</span>
-      <span><i class="sw cup"></i>NBA Cup group game</span>
     </div>
     <div class="cal">
       <div class="dow"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div>
@@ -203,67 +252,1266 @@ button { font: inherit; color: inherit; }
   </section>
 
   <footer class="note">
-    <p>80 of 82 games are dated: 40 home, 40 away. The last two are NBA Cup knockout games the league sets in early December, after group play.</p>
-    <p>Mid-February gap is the All-Star break. Use ← and → keys to change months.</p>
+    <p>Every team has 80 dated games. Each team's last two are NBA Cup knockout-week games the league schedules in early December, after group play ends.</p>
+    <p>National TV channels are listed for Lakers games. Your team picks are saved in this browser. Use ← and → to change months.</p>
   </footer>
 </div>
 
 <script>
 (function () {
-  var TEAMS = {
-    ATL:["Atlanta","Hawks"], BKN:["Brooklyn","Nets"], BOS:["Boston","Celtics"], CHA:["Charlotte","Hornets"],
-    CHI:["Chicago","Bulls"], CLE:["Cleveland","Cavaliers"], DAL:["Dallas","Mavericks"], DEN:["Denver","Nuggets"],
-    DET:["Detroit","Pistons"], GSW:["Golden State","Warriors"], HOU:["Houston","Rockets"], IND:["Indiana","Pacers"],
-    LAC:["LA","Clippers"], MEM:["Memphis","Grizzlies"], MIA:["Miami","Heat"], MIL:["Milwaukee","Bucks"],
-    MIN:["Minnesota","Timberwolves"], NOP:["New Orleans","Pelicans"], NYK:["New York","Knicks"], OKC:["Oklahoma City","Thunder"],
-    ORL:["Orlando","Magic"], PHI:["Philadelphia","76ers"], PHX:["Phoenix","Suns"], POR:["Portland","Trail Blazers"],
-    SAC:["Sacramento","Kings"], SAS:["San Antonio","Spurs"], TOR:["Toronto","Raptors"], UTA:["Utah","Jazz"],
-    WAS:["Washington","Wizards"]
-  };
-
-  // date | H/A | opponent | tip (ET, 24h) | national TV | NBA Cup flag
-  var RAW = [
-    "2026-10-21|H|GSW|22:00|ESPN","2026-10-23|H|LAC|22:00|","2026-10-25|A|UTA|17:00|","2026-10-27|H|POR|23:00|NBC",
-    "2026-10-28|A|LAC|22:30|","2026-10-30|A|GSW|22:00|Prime|cup",
-    "2026-11-01|H|TOR|21:00|","2026-11-02|H|MIA|22:00|","2026-11-04|A|SAC|22:00|","2026-11-06|H|POR|22:00|Prime|cup",
-    "2026-11-08|A|DET|18:00|","2026-11-09|A|ATL|19:00|","2026-11-11|A|MIL|20:00|","2026-11-15|A|PHX|16:00|",
-    "2026-11-17|H|CHA|22:00|","2026-11-18|H|UTA|22:00|","2026-11-20|H|SAC|22:00||cup","2026-11-23|H|UTA|22:00|",
-    "2026-11-27|A|SAS|21:30|Prime|cup","2026-11-29|A|MEM|16:00|","2026-11-30|A|HOU|19:30|Peacock",
-    "2026-12-02|A|NOP|20:00|","2026-12-14|H|NOP|22:00|","2026-12-16|A|MIN|21:30|ESPN","2026-12-18|A|MIN|20:00|",
-    "2026-12-19|A|DEN|21:00|","2026-12-21|H|IND|22:00|","2026-12-23|H|DEN|22:00|Prime","2026-12-25|H|PHI|17:00|ABC",
-    "2026-12-27|H|MEM|21:00|","2026-12-29|H|HOU|22:30|NBC","2026-12-31|A|NOP|20:00|",
-    "2027-01-02|A|CHI|20:00|","2027-01-03|A|TOR|19:00|","2027-01-05|A|WAS|19:00|","2027-01-07|H|BOS|22:00|Prime",
-    "2027-01-08|H|DET|22:00|","2027-01-11|A|LAC|22:00|Peacock","2027-01-13|A|POR|22:00|","2027-01-14|H|ORL|22:00|",
-    "2027-01-17|H|MIL|21:00|","2027-01-19|A|SAC|22:00|","2027-01-21|A|GSW|22:00|Prime","2027-01-22|H|SAC|22:00|",
-    "2027-01-24|H|WAS|16:00|","2027-01-26|H|OKC|23:00|NBC","2027-01-28|A|IND|19:00|","2027-01-30|A|NYK|20:30|ABC",
-    "2027-01-31|A|CHA|19:00|",
-    "2027-02-02|A|BOS|20:00|NBC","2027-02-04|A|BKN|19:30|","2027-02-06|A|SAS|20:30|ABC","2027-02-08|A|PHX|21:30|Peacock",
-    "2027-02-10|H|LAC|22:00|ESPN","2027-02-12|H|DEN|22:30|ESPN","2027-02-16|H|CHI|22:00|","2027-02-18|H|HOU|22:00|Prime",
-    "2027-02-26|A|DEN|22:00|ESPN","2027-02-28|A|DAL|15:30|ABC",
-    "2027-03-02|A|ORL|19:00|","2027-03-04|A|PHI|19:00|Prime","2027-03-06|H|OKC|20:30|ABC","2027-03-07|H|BKN|22:30|",
-    "2027-03-11|H|NYK|22:00|Prime","2027-03-12|H|CLE|22:00|","2027-03-14|H|GSW|22:00|NBC","2027-03-16|A|POR|22:00|",
-    "2027-03-17|H|PHX|22:00|ESPN","2027-03-19|H|ATL|22:00|","2027-03-21|H|DAL|22:00|NBC","2027-03-23|A|MIA|20:00|NBC",
-    "2027-03-25|A|CLE|19:00|","2027-03-28|A|HOU|15:00|ESPN","2027-03-30|A|MEM|20:00|",
-    "2027-04-01|A|OKC|21:30|Prime","2027-04-04|H|SAS|22:00|NBC","2027-04-06|H|DAL|22:00|","2027-04-07|H|MIN|22:00|ESPN",
-    "2027-04-09|H|MIN|22:00|","2027-04-11|H|PHX|20:30|"
+  /* abbr | city | name | conference | extra search words */
+  var TEAMS_RAW = [
+    "ATL|Atlanta|Hawks|East|", "BOS|Boston|Celtics|East|cs", "BKN|Brooklyn|Nets|East|bk new york ny",
+    "CHA|Charlotte|Hornets|East|", "CHI|Chicago|Bulls|East|", "CLE|Cleveland|Cavaliers|East|cavs",
+    "DAL|Dallas|Mavericks|West|mavs", "DEN|Denver|Nuggets|West|nugs", "DET|Detroit|Pistons|East|",
+    "GSW|Golden State|Warriors|West|dubs san francisco gs", "HOU|Houston|Rockets|West|", "IND|Indiana|Pacers|East|indianapolis",
+    "LAC|LA|Clippers|West|los angeles clips", "LAL|Los Angeles|Lakers|West|la", "MEM|Memphis|Grizzlies|West|grizz",
+    "MIA|Miami|Heat|East|", "MIL|Milwaukee|Bucks|East|", "MIN|Minnesota|Timberwolves|West|wolves twolves minneapolis",
+    "NOP|New Orleans|Pelicans|West|pels nola", "NYK|New York|Knicks|East|ny nyc", "OKC|Oklahoma City|Thunder|West|okc",
+    "ORL|Orlando|Magic|East|", "PHI|Philadelphia|76ers|East|sixers philly", "PHX|Phoenix|Suns|West|",
+    "POR|Portland|Trail Blazers|West|blazers", "SAC|Sacramento|Kings|West|", "SAS|San Antonio|Spurs|West|",
+    "TOR|Toronto|Raptors|East|raps", "UTA|Utah|Jazz|West|salt lake", "WAS|Washington|Wizards|East|wiz dc"
   ];
-
-  var games = RAW.map(function (r, i) {
-    var p = r.split("|"), d = p[0].split("-");
-    var t = p[3].split(":");
-    return { n: i + 1, key: p[0], y: +d[0], m: +d[1] - 1, d: +d[2], home: p[1] === "H", opp: p[2],
-             etMin: (+t[0]) * 60 + (+t[1]), tv: p[4] || "", cup: p[5] === "cup" };
+  var TEAMS = {}, TEAM_LIST = [];
+  TEAMS_RAW.forEach(function (r) {
+    var p = r.split("|");
+    var t = { ab: p[0], city: p[1], name: p[2], conf: p[3], full: p[1] + " " + p[2],
+              hay: (p[0] + " " + p[1] + " " + p[2] + " " + p[4]).toLowerCase() };
+    TEAMS[t.ab] = t; TEAM_LIST.push(t);
   });
+  TEAM_LIST.sort(function (a, b) { return a.full.localeCompare(b.full); });
+
+  /* MMDD | away | home | tip in minutes after midnight ET | flags (c = NBA Cup) | national TV (Lakers games) */
+  var RAW = [
+"1020|BOS|DET|900",
+"1020|PHI|NYK|1140",
+"1020|OKC|SAS|1290",
+"1021|MIN|MIA|1170",
+"1021|GSW|LAL|1320||ESPN",
+"1021|SAC|LAC|1350",
+"1021|PHX|POR|1320",
+"1021|DAL|HOU|1230",
+"1021|UTA|MEM|1200",
+"1021|IND|NOP|1200",
+"1021|CHI|TOR|1170",
+"1021|CHA|BKN|1170",
+"1021|MIL|WAS|1140",
+"1021|ATL|ORL|1140",
+"1022|CLE|PHI|1140",
+"1022|DEN|OKC|1290",
+"1023|HOU|SAS|1290",
+"1023|NYK|BOS|1140",
+"1023|POR|SAC|1320",
+"1023|LAC|LAL|1320",
+"1023|MEM|GSW|1320",
+"1023|NOP|UTA|1290",
+"1023|DET|MIA|1200",
+"1023|CHI|MIL|1200",
+"1023|DAL|IND|1140",
+"1023|MIN|ORL|1140",
+"1023|ATL|CHA|1140",
+"1023|TOR|WAS|1140",
+"1024|GSW|PHX|1320",
+"1024|NOP|DEN|1260",
+"1024|HOU|ATL|1200",
+"1024|WAS|CHI|1200",
+"1024|SAS|DAL|1200",
+"1024|BKN|CLE|1170",
+"1024|MIL|PHI|1170",
+"1024|MIA|CHA|1080",
+"1025|MEM|SAC|1260",
+"1025|DET|PHI|1170",
+"1025|TOR|MIN|1140",
+"1025|ORL|NYK|1140",
+"1025|LAC|OKC|1140",
+"1025|IND|BKN|1080",
+"1025|LAL|UTA|1020",
+"1026|GSW|DEN|1320",
+"1026|MEM|UTA|1260",
+"1026|ATL|HOU|1230",
+"1026|PHX|OKC|1200",
+"1026|IND|MIL|1200",
+"1026|CHI|BOS|1170",
+"1026|DAL|MIA|1170",
+"1026|MIN|CLE|1140",
+"1026|WAS|CHA|1140",
+"1027|POR|LAL|1380||NBC",
+"1027|SAC|SAS|1200",
+"1027|DET|NYK|1200",
+"1027|BKN|BOS|1170",
+"1028|LAL|LAC|1350",
+"1028|OKC|DAL|1290",
+"1028|SAS|UTA|1260",
+"1028|NYK|CHI|1200",
+"1028|DEN|NOP|1200",
+"1028|GSW|MIN|1200",
+"1028|HOU|MIL|1200",
+"1028|ORL|TOR|1170",
+"1028|WAS|CLE|1140",
+"1028|MIA|ATL|1140",
+"1028|CHA|DET|1140",
+"1028|PHI|IND|1140",
+"1029|MEM|POR|1320",
+"1029|SAC|NOP|1200",
+"1029|CLE|ATL|1140",
+"1030|CHA|WAS|1140|c",
+"1030|NYK|PHI|1170|c",
+"1030|CHI|BOS|1170|c",
+"1030|DET|BKN|1170|c",
+"1030|ORL|TOR|1170|c",
+"1030|IND|MIA|1200|c",
+"1030|HOU|DAL|1200|c",
+"1030|LAC|MIN|1200|c",
+"1030|LAL|GSW|1320|c|Prime",
+"1030|DEN|PHX|1320|c",
+"1031|OKC|HOU|1230",
+"1031|SAC|MEM|1200",
+"1031|MIN|SAS|1200",
+"1031|CLE|MIL|1200",
+"1031|ATL|NOP|1140",
+"1031|PHI|CHA|1080",
+"1031|POR|UTA|900",
+"1101|TOR|LAL|1260",
+"1101|LAC|GSW|1230",
+"1101|BKN|IND|1020",
+"1101|BOS|ORL|930",
+"1102|MIA|LAL|1320",
+"1102|PHX|GSW|1320",
+"1102|TOR|LAC|1320",
+"1102|POR|DEN|1260",
+"1102|UTA|SAS|1230",
+"1102|BOS|HOU|1230",
+"1102|NOP|MEM|1200",
+"1102|MIL|MIN|1200",
+"1102|SAC|DAL|1200",
+"1102|DET|CHA|1170",
+"1102|WAS|ORL|1170",
+"1102|BKN|NYK|1170",
+"1102|ATL|IND|1170",
+"1102|CHI|PHI|1170",
+"1102|OKC|CLE|1140",
+"1104|MIA|LAC|1350",
+"1104|LAL|SAC|1320",
+"1104|DAL|SAS|1290",
+"1104|POR|PHX|1260",
+"1104|TOR|DEN|1260",
+"1104|MIN|HOU|1230",
+"1104|IND|MEM|1200",
+"1104|UTA|NOP|1200",
+"1104|CLE|OKC|1200",
+"1104|CHI|NYK|1170",
+"1104|CHA|BKN|1170",
+"1104|MIL|BOS|1170",
+"1104|PHI|DET|1140",
+"1104|ATL|WAS|1140",
+"1105|MIA|GSW|1320",
+"1105|ORL|PHX|1260",
+"1106|WAS|ATL|1140|c",
+"1106|BOS|CHA|1140|c",
+"1106|PHI|CLE|1170|c",
+"1106|UTA|DAL|1200|c",
+"1106|OKC|MEM|1200|c",
+"1106|MIN|NOP|1200|c",
+"1106|TOR|MIL|1200|c",
+"1106|POR|LAL|1320|c|Prime",
+"1106|SAS|SAC|1320|c",
+"1107|SAS|POR|1320",
+"1107|HOU|PHX|1260",
+"1107|ORL|GSW|1230",
+"1107|WAS|OKC|1200",
+"1107|NYK|CLE|1200",
+"1107|BKN|ATL|1170",
+"1107|DEN|IND|1020",
+"1108|MIA|SAC|1260",
+"1108|NOP|LAC|1260",
+"1108|BOS|MIL|1200",
+"1108|BKN|DAL|1170",
+"1108|UTA|MIN|1140",
+"1108|LAL|DET|1080",
+"1108|PHI|CHI|930",
+"1109|NOP|GSW|1320",
+"1109|SAS|PHX|1260",
+"1109|DEN|HOU|1230",
+"1109|IND|DAL|1200",
+"1109|MEM|TOR|1170",
+"1109|CLE|CHA|1140",
+"1109|WAS|DET|1140",
+"1109|LAL|ATL|1140",
+"1110|OKC|POR|1380",
+"1110|ORL|SAC|1320",
+"1110|MIA|UTA|1260",
+"1110|LAC|PHX|1260",
+"1110|BOS|PHI|1200",
+"1110|MIL|NYK|1170",
+"1111|OKC|POR|1320",
+"1111|GSW|HOU|1290",
+"1111|ORL|UTA|1260",
+"1111|SAS|CHI|1200",
+"1111|DEN|MEM|1200",
+"1111|BKN|NOP|1200",
+"1111|LAL|MIL|1200",
+"1111|WAS|IND|1140",
+"1111|BOS|TOR|1140",
+"1111|CLE|NYK|1140",
+"1112|CHA|PHX|1260",
+"1112|DAL|MIN|1200",
+"1112|DET|WAS|1140",
+"1112|TOR|PHI|1140",
+"1113|NYK|IND|1140|c",
+"1113|MIL|ORL|1140|c",
+"1113|CLE|MIA|1200|c",
+"1113|ATL|CHI|1200|c",
+"1113|MEM|NOP|1200|c",
+"1113|UTA|HOU|1230|c",
+"1113|GSW|SAS|1290|c",
+"1113|POR|SAC|1320|c",
+"1113|OKC|LAC|1350|c",
+"1114|CHI|MIN|1200",
+"1114|DET|MIA|1200",
+"1114|BKN|MEM|1200",
+"1114|DAL|CLE|1170",
+"1114|DEN|NOP|1140",
+"1115|OKC|SAC|1260",
+"1115|ATL|MIL|1200",
+"1115|HOU|WAS|1140",
+"1115|DAL|BOS|1080",
+"1115|NYK|TOR|1080",
+"1115|SAS|UTA|1020",
+"1115|CHA|LAC|990",
+"1115|LAL|PHX|960",
+"1115|IND|PHI|780",
+"1116|PHX|DEN|1260",
+"1116|POR|MIN|1200",
+"1116|GSW|NOP|1200",
+"1116|PHI|BKN|1170",
+"1116|HOU|MIA|1170",
+"1116|CHI|CLE|1140",
+"1116|MEM|WAS|1140",
+"1116|ORL|BOS|1140",
+"1117|UTA|LAC|1380",
+"1117|CHA|LAL|1320",
+"1117|POR|MIN|1200",
+"1117|DET|SAS|1200",
+"1117|NYK|TOR|1170",
+"1118|UTA|LAL|1320",
+"1118|PHX|SAC|1320",
+"1118|GSW|DAL|1290",
+"1118|BOS|DEN|1260",
+"1118|DET|NOP|1200",
+"1118|ATL|OKC|1200",
+"1118|WAS|TOR|1170",
+"1118|CHI|BKN|1170",
+"1118|MEM|CLE|1140",
+"1118|MIL|MIA|1140",
+"1118|PHI|ORL|1140",
+"1118|HOU|IND|1140",
+"1119|POR|MIL|1200",
+"1119|NYK|MIN|1200",
+"1119|GSW|MEM|1200",
+"1119|LAC|SAS|1200",
+"1120|CHA|ATL|1140|c",
+"1120|ORL|BKN|1170|c",
+"1120|IND|CLE|1170|c",
+"1120|TOR|DET|1170|c",
+"1120|WAS|CHI|1200|c",
+"1120|NOP|OKC|1200|c",
+"1120|PHX|UTA|1290|c",
+"1120|HOU|DEN|1320|c",
+"1120|SAC|LAL|1320|c",
+"1121|BOS|SAC|1320",
+"1121|LAC|DAL|1200",
+"1121|MEM|MIN|1200",
+"1121|NOP|SAS|1200",
+"1121|POR|NYK|1170",
+"1121|MIL|PHI|780",
+"1122|BOS|GSW|1230",
+"1122|IND|NYK|1200",
+"1122|DEN|CHI|1140",
+"1122|ORL|WAS|1140",
+"1122|DAL|UTA|1140",
+"1122|OKC|MIA|1080",
+"1122|DET|ATL|930",
+"1123|UTA|LAL|1320",
+"1123|SAS|SAC|1320",
+"1123|LAC|HOU|1230",
+"1123|PHX|NOP|1200",
+"1123|CLE|CHI|1200",
+"1123|OKC|IND|1170",
+"1123|MIL|TOR|1170",
+"1123|BKN|MIN|1170",
+"1123|POR|PHI|1140",
+"1123|MEM|CHA|1140",
+"1124|DET|ORL|1140|c",
+"1124|BOS|WAS|1200|c",
+"1124|DAL|DEN|1320|c",
+"1125|MIA|PHI|1020|c",
+"1125|CHI|CHA|1140|c",
+"1125|CLE|NYK|1170|c",
+"1125|MIN|OKC|1170|c",
+"1125|LAC|MEM|1200|c",
+"1125|BKN|MIL|1200|c",
+"1125|SAC|GSW|1320|c",
+"1125|PHX|HOU|1230|c",
+"1125|SAS|POR|1320|c",
+"1127|MIA|NYK|1140|c",
+"1127|MIL|DET|1170|c",
+"1127|PHI|IND|1170|c",
+"1127|BKN|TOR|1170|c",
+"1127|ATL|BOS|1200|c",
+"1127|MEM|MIN|1230|c",
+"1127|DAL|PHX|1260|c",
+"1127|LAL|SAS|1290|c|Prime",
+"1127|DEN|UTA|1290|c",
+"1127|NOP|LAC|1290|c",
+"1127|GSW|POR|1290|c",
+"1128|PHI|HOU|1230",
+"1128|OKC|MIL|1200",
+"1128|IND|CHI|1200",
+"1128|BKN|CHA|1080",
+"1128|ORL|WAS|1020",
+"1129|MIN|SAC|1260",
+"1129|LAC|GSW|1230",
+"1129|NOP|POR|1080",
+"1129|DEN|TOR|1080",
+"1129|ATL|NYK|1080",
+"1129|ORL|DET|1080",
+"1129|MIA|CLE|1080",
+"1129|PHX|UTA|1020",
+"1129|LAL|MEM|960",
+"1129|BOS|SAS|960",
+"1130|NOP|SAC|1320",
+"1130|SAS|MIL|1200",
+"1130|BOS|DAL|1200",
+"1130|LAL|HOU|1170||Peacock",
+"1130|OKC|BKN|1170",
+"1130|DEN|DET|1140",
+"1130|WAS|CHA|1140",
+"1201|UTA|GSW|1380",
+"1201|MIN|POR|1320",
+"1201|LAC|PHX|1260",
+"1201|TOR|HOU|1230",
+"1201|NYK|CHI|1200",
+"1201|ATL|MIA|1170",
+"1201|IND|CLE|1140",
+"1201|MEM|PHI|1140",
+"1202|MIN|LAC|1350",
+"1202|SAC|PHX|1260",
+"1202|BKN|OKC|1200",
+"1202|LAL|NOP|1200",
+"1202|ORL|DAL|1200",
+"1202|NYK|MIL|1200",
+"1202|CHA|BOS|1170",
+"1202|DEN|PHI|1140",
+"1202|MEM|DET|1140",
+"1203|UTA|POR|1320",
+"1203|TOR|SAS|1200",
+"1203|CLE|CHI|1200",
+"1203|WAS|MIA|1170",
+"1203|IND|ATL|1140",
+"1212|ATL|POR|1320",
+"1212|DEN|UTA|1290",
+"1212|MIN|PHX|1260",
+"1212|NYK|MIA|1230",
+"1212|GSW|CLE|1200",
+"1212|ORL|PHI|1170",
+"1212|CHA|WAS|1140",
+"1212|MIL|MEM|1020",
+"1213|NOP|SAC|1260",
+"1213|LAC|SAS|1140",
+"1213|HOU|CHI|1080",
+"1213|DET|IND|1020",
+"1213|TOR|OKC|930",
+"1213|BOS|BKN|900",
+"1214|NOP|LAL|1320",
+"1214|MIN|UTA|1260",
+"1214|ATL|PHX|1260",
+"1214|NYK|HOU|1230",
+"1214|GSW|MEM|1200",
+"1214|MIL|DAL|1200",
+"1214|MIA|CHI|1200",
+"1214|WAS|BOS|1170",
+"1214|PHI|ORL|1140",
+"1214|BKN|DET|1140",
+"1214|TOR|CHA|1140",
+"1215|DEN|POR|1380",
+"1215|SAS|CLE|1200",
+"1216|LAL|MIN|1290||ESPN",
+"1216|MIL|HOU|1230",
+"1216|SAC|OKC|1200",
+"1216|NYK|NOP|1200",
+"1216|UTA|CHI|1200",
+"1216|MIA|MEM|1200",
+"1216|SAS|TOR|1170",
+"1216|DAL|BKN|1170",
+"1216|GSW|IND|1140",
+"1216|CLE|ORL|1140",
+"1216|PHX|DET|1140",
+"1216|LAC|CHA|1140",
+"1216|WAS|BOS|1140",
+"1217|ATL|DEN|1260",
+"1217|DAL|PHI|1140",
+"1217|POR|IND|1140",
+"1218|CHI|SAS|1200",
+"1218|LAL|MIN|1200",
+"1218|SAC|NOP|1200",
+"1218|PHX|MIL|1200",
+"1218|HOU|MEM|1200",
+"1218|GSW|TOR|1170",
+"1218|CLE|DET|1170",
+"1218|ORL|BKN|1170",
+"1218|UTA|BOS|1170",
+"1218|NYK|WAS|1140",
+"1218|LAC|MIA|1140",
+"1218|OKC|CHA|1140",
+"1219|LAL|DEN|1260",
+"1219|CHI|DAL|1200",
+"1219|ORL|ATL|1140",
+"1219|POR|CHA|1080",
+"1220|IND|LAC|1320",
+"1220|GSW|MIL|1200",
+"1220|DET|BOS|1200",
+"1220|SAS|NOP|1140",
+"1220|OKC|ATL|1140",
+"1220|UTA|CLE|1080",
+"1220|SAC|MIA|1080",
+"1220|PHX|MEM|960",
+"1220|HOU|TOR|930",
+"1220|WAS|BKN|900",
+"1221|DEN|LAC|1350",
+"1221|IND|LAL|1320",
+"1221|MEM|NOP|1200",
+"1221|MIL|SAS|1200",
+"1221|PHX|MIN|1200",
+"1221|CHI|MIA|1170",
+"1221|POR|BKN|1170",
+"1221|SAC|ORL|1140",
+"1221|NYK|CLE|1140",
+"1221|PHI|CHA|1140",
+"1222|DET|OKC|1200",
+"1222|TOR|WAS|1140",
+"1222|DAL|GSW|1350",
+"1223|GSW|LAC|1350",
+"1223|DAL|SAC|1320",
+"1223|DEN|LAL|1320||Prime",
+"1223|IND|PHX|1260",
+"1223|OKC|NOP|1200",
+"1223|MIN|MIL|1200",
+"1223|TOR|MEM|1200",
+"1223|HOU|PHI|1170",
+"1223|UTA|NYK|1170",
+"1223|CHI|MIA|1170",
+"1223|SAS|BKN|1170",
+"1223|POR|BOS|1170",
+"1223|CLE|WAS|1140",
+"1223|DET|ATL|1140",
+"1223|CHA|ORL|1140",
+"1225|SAS|NYK|720",
+"1225|MIA|BOS|870",
+"1225|PHI|LAL|1020||ABC",
+"1225|OKC|MIN|1200",
+"1225|DEN|GSW|1350",
+"1226|MEM|LAC|1350",
+"1226|PHX|DAL|1200",
+"1226|DET|CHI|1200",
+"1226|TOR|ORL|1140",
+"1226|NOP|BKN|1080",
+"1226|IND|UTA|1020",
+"1226|CHA|ATL|930",
+"1226|POR|WAS|780",
+"1227|MEM|LAL|1260",
+"1227|PHI|LAC|1260",
+"1227|MIN|GSW|1230",
+"1227|IND|DEN|1200",
+"1227|ATL|SAS|1140",
+"1227|POR|DET|1140",
+"1227|UTA|SAC|1080",
+"1227|MIL|ORL|1080",
+"1227|BKN|NYK|1080",
+"1227|WAS|CLE|1080",
+"1227|CHA|MIA|1080",
+"1227|OKC|HOU|930",
+"1228|MIN|DEN|1350",
+"1228|GSW|PHX|1260",
+"1228|CLE|BOS|1200",
+"1228|NOP|TOR|1170",
+"1229|HOU|LAL|1350||NBC",
+"1229|PHI|SAC|1320",
+"1229|BKN|POR|1320",
+"1229|MIL|OKC|1200",
+"1229|SAS|MEM|1200",
+"1229|MIA|DAL|1200",
+"1229|ORL|CHA|1140",
+"1229|LAC|IND|1140",
+"1229|CHI|ATL|1140",
+"1230|HOU|GSW|1320",
+"1230|PHI|PHX|1260",
+"1230|NYK|UTA|1260",
+"1230|BOS|CHI|1200",
+"1230|WAS|TOR|1170",
+"1230|NOP|DET|1140",
+"1231|NYK|PHX|1260",
+"1231|MIA|OKC|1200",
+"1231|LAL|NOP|1200",
+"1231|BKN|SAC|1080",
+"1231|DEN|MIN|960",
+"1231|ORL|IND|900",
+"1231|MIL|ATL|900",
+"1231|LAC|CLE|900",
+"1231|SAS|CHA|780",
+"0101|BOS|UTA|1290",
+"0101|DAL|HOU|1230",
+"0101|PHI|MIL|1200",
+"0101|ORL|DET|1170",
+"0101|LAC|TOR|1170",
+"0101|SAS|WAS|1020",
+"0102|BOS|POR|1320",
+"0102|SAC|PHX|1260",
+"0102|BKN|GSW|1230",
+"0102|UTA|OKC|1200",
+"0102|LAL|CHI|1200",
+"0102|DAL|ATL|1170",
+"0102|MIA|NOP|1140",
+"0102|MIN|IND|1140",
+"0102|NYK|DEN|1020",
+"0102|CLE|CHA|780",
+"0103|SAC|OKC|1200",
+"0103|CLE|HOU|1140",
+"0103|LAC|WAS|1140",
+"0103|SAS|MIN|1140",
+"0103|LAL|TOR|1140",
+"0103|MEM|ORL|1080",
+"0103|CHA|MIL|1050",
+"0103|DET|DEN|1020",
+"0104|NYK|POR|1320",
+"0104|BKN|UTA|1260",
+"0104|BOS|PHX|1260",
+"0104|DAL|NOP|1200",
+"0104|ATL|PHI|1140",
+"0104|CHI|IND|1140",
+"0105|DET|SAC|1320",
+"0105|PHX|DEN|1320",
+"0105|MIN|HOU|1200",
+"0105|MIL|CHI|1200",
+"0105|MEM|MIA|1170",
+"0105|TOR|CLE|1140",
+"0105|LAL|WAS|1140",
+"0105|LAC|ORL|1140",
+"0105|ATL|CHA|1140",
+"0106|NYK|GSW|1320",
+"0106|IND|SAS|1200",
+"0106|POR|NOP|1200",
+"0106|OKC|PHI|1170",
+"0106|UTA|BKN|1170",
+"0107|CHI|SAC|1320",
+"0107|DET|GSW|1320",
+"0107|BOS|LAL|1320||Prime",
+"0107|MEM|HOU|1230",
+"0107|POR|DAL|1200",
+"0107|LAC|MIL|1200",
+"0107|MIN|TOR|1170",
+"0107|MIA|BKN|1170",
+"0107|OKC|WAS|1140",
+"0107|CLE|ORL|1140",
+"0107|DEN|CHA|1140",
+"0107|IND|ATL|1140",
+"0108|DET|LAL|1320",
+"0108|NYK|SAC|1320",
+"0108|PHX|DAL|1290",
+"0108|ORL|NOP|1200",
+"0108|MEM|SAS|1200",
+"0108|UTA|TOR|1170",
+"0108|MIN|WAS|1140",
+"0108|MIA|PHI|1140",
+"0109|BOS|LAC|1350",
+"0109|CHA|POR|1320",
+"0109|CHI|GSW|1230",
+"0109|MIL|IND|1140",
+"0109|HOU|BKN|1080",
+"0109|DEN|CLE|1020",
+"0110|CHA|SAC|1260",
+"0110|CHI|PHX|1140",
+"0110|PHI|TOR|1080",
+"0110|NOP|MIA|1080",
+"0110|OKC|ORL|1080",
+"0110|DAL|MEM|1080",
+"0110|UTA|DET|1080",
+"0110|SAS|ATL|900",
+"0111|LAL|LAC|1320||Peacock",
+"0111|CLE|MIN|1200",
+"0111|DEN|NYK|1170",
+"0111|HOU|BOS|1170",
+"0111|ATL|WAS|1140",
+"0111|BKN|IND|1140",
+"0112|SAC|GSW|1380",
+"0112|ORL|POR|1320",
+"0112|CHI|UTA|1260",
+"0112|DAL|MEM|1200",
+"0112|DEN|MIL|1200",
+"0112|WAS|PHI|1200",
+"0112|DET|TOR|1170",
+"0112|BKN|MIA|1170",
+"0113|LAL|POR|1320",
+"0113|CHA|GSW|1320",
+"0113|HOU|OKC|1290",
+"0113|PHX|TOR|1170",
+"0113|NYK|BOS|1140",
+"0113|CLE|ATL|1140",
+"0113|MIL|IND|1140",
+"0114|LAC|SAC|1320",
+"0114|ORL|LAL|1320",
+"0114|CHA|UTA|1260",
+"0114|MEM|DEN|1260",
+"0114|MIN|CHI|1200",
+"0114|MIA|NYK|1170",
+"0114|BKN|PHI|1140",
+"0114|DAL|DET|1140",
+"0114|NOP|SAS|840",
+"0115|ORL|LAC|1350",
+"0115|SAC|POR|1320",
+"0115|WAS|HOU|1230",
+"0115|UTA|OKC|1200",
+"0115|CLE|MIL|1200",
+"0115|MIA|TOR|1170",
+"0115|PHX|IND|1140",
+"0115|GSW|ATL|1140",
+"0116|CHA|DEN|1260",
+"0116|DET|HOU|1230",
+"0116|CLE|MEM|1200",
+"0116|DAL|NYK|1170",
+"0116|BKN|BOS|1140",
+"0116|MIN|PHI|750",
+"0117|MIL|LAL|1260",
+"0117|ORL|DEN|1200",
+"0117|SAC|UTA|1020",
+"0117|POR|OKC|930",
+"0117|TOR|CHI|930",
+"0117|IND|WAS|780",
+"0117|SAS|NOP|630",
+"0117|GSW|MIA|1080",
+"0118|DET|CLE|720",
+"0118|PHI|ATL|870",
+"0118|MIN|NYK|1020",
+"0118|HOU|MEM|1170",
+"0118|PHX|LAC|1350",
+"0118|OKC|DAL|1200",
+"0118|BOS|WAS|900",
+"0119|UTA|DEN|1320",
+"0119|LAL|SAC|1320",
+"0119|CHA|DAL|1200",
+"0119|POR|MIA|1170",
+"0119|CHI|TOR|1140",
+"0119|IND|PHI|1140",
+"0119|GSW|ORL|1140",
+"0120|MIL|SAC|1320",
+"0120|MIA|SAS|1290",
+"0120|MEM|PHX|1260",
+"0120|LAC|UTA|1260",
+"0120|OKC|NOP|1200",
+"0120|HOU|MIN|1200",
+"0120|TOR|NYK|1170",
+"0120|IND|BOS|1170",
+"0120|POR|ATL|1140",
+"0120|CHI|BKN|1140",
+"0121|LAL|GSW|1320||Prime",
+"0121|WAS|DEN|1260",
+"0121|CLE|BKN|1170",
+"0121|PHI|BOS|1170",
+"0122|WAS|LAC|1350",
+"0122|MIL|GSW|1320",
+"0122|SAC|LAL|1320",
+"0122|UTA|PHX|1260",
+"0122|MEM|OKC|1200",
+"0122|DAL|NOP|1200",
+"0122|IND|DET|1170",
+"0122|POR|ORL|1140",
+"0122|HOU|CHA|1140",
+"0122|NYK|ATL|1140",
+"0122|MIN|SAS|1290",
+"0123|MIL|DEN|1260",
+"0123|CLE|DAL|1200",
+"0123|ATL|MIA|1200",
+"0123|CHA|BOS|1140",
+"0123|TOR|BKN|1080",
+"0123|PHI|CHI|1020",
+"0124|OKC|GSW|1230",
+"0124|LAC|NYK|1140",
+"0124|HOU|ORL|1080",
+"0124|MIN|DET|1080",
+"0124|UTA|PHX|960",
+"0124|WAS|LAL|960",
+"0124|POR|SAS|930",
+"0125|SAC|DEN|1290",
+"0125|MIN|MEM|1200",
+"0125|CLE|NOP|1200",
+"0125|DAL|CHI|1200",
+"0125|MIA|BKN|1170",
+"0125|LAC|PHI|1140",
+"0125|TOR|BOS|1140",
+"0125|ORL|CHA|1140",
+"0126|OKC|LAL|1380||NBC",
+"0126|WAS|POR|1320",
+"0126|MIL|UTA|1260",
+"0126|HOU|SAS|1200",
+"0126|PHX|NYK|1170",
+"0126|CHI|IND|1140",
+"0126|ATL|DET|1140",
+"0127|GSW|POR|1320",
+"0127|DEN|MIN|1290",
+"0127|NOP|HOU|1230",
+"0127|CHA|SAS|1200",
+"0127|DAL|TOR|1170",
+"0127|PHX|BKN|1170",
+"0127|LAC|BOS|1170",
+"0127|SAC|PHI|1140",
+"0127|DET|CLE|1140",
+"0128|MIA|MIL|1290",
+"0128|GSW|UTA|1260",
+"0128|MEM|OKC|1200",
+"0128|PHI|NOP|1200",
+"0128|CHI|ORL|1140",
+"0128|SAC|WAS|1140",
+"0128|LAL|IND|1140",
+"0128|ATL|NYK|1140",
+"0129|CHA|MIN|1290",
+"0129|ORL|HOU|1230",
+"0129|DET|DAL|1200",
+"0129|LAC|BKN|1170",
+"0129|PHX|BOS|1170",
+"0129|CLE|TOR|1140",
+"0130|MEM|UTA|1290",
+"0130|LAL|NYK|1230||ABC",
+"0130|ATL|MIL|1200",
+"0130|NOP|CLE|1170",
+"0130|WAS|IND|1140",
+"0130|SAS|GSW|1050",
+"0130|DEN|OKC|900",
+"0130|PHI|MIA|750",
+"0201|SAS|GSW|1320",
+"0201|CLE|UTA|1260",
+"0201|MEM|MIL|1200",
+"0201|MIA|IND|1170",
+"0201|NYK|BKN|1170",
+"0201|NOP|PHI|1140",
+"0201|WAS|ATL|1140",
+"0202|MIN|POR|1380",
+"0202|SAS|LAC|1350",
+"0202|OKC|DEN|1260",
+"0202|TOR|DAL|1200",
+"0202|LAL|BOS|1200||NBC",
+"0202|CHA|MIA|1170",
+"0202|NOP|ORL|1140",
+"0202|CHI|DET|1140",
+"0203|GSW|LAC|1350",
+"0203|UTA|HOU|1290",
+"0203|CLE|PHX|1260",
+"0203|PHI|MEM|1200",
+"0203|ATL|IND|1140",
+"0203|NYK|DET|1140",
+"0204|MIN|SAC|1320",
+"0204|CLE|POR|1320",
+"0204|DAL|DEN|1320",
+"0204|OKC|CHI|1200",
+"0204|ORL|SAS|1200",
+"0204|TOR|NYK|1170",
+"0204|LAL|BKN|1170",
+"0204|BOS|CHA|1170",
+"0204|MIL|MIA|1170",
+"0204|NOP|WAS|1140",
+"0205|IND|OKC|1290",
+"0205|HOU|PHX|1260",
+"0205|LAC|DEN|1260",
+"0205|DET|PHI|1140",
+"0205|GSW|CHA|1140",
+"0205|BOS|ATL|1140",
+"0206|PHX|SAC|1320",
+"0206|LAL|SAS|1230||ABC",
+"0206|NOP|CHI|1200",
+"0206|MIL|TOR|1170",
+"0206|ORL|CLE|1170",
+"0206|WAS|BKN|1080",
+"0206|POR|MEM|1050",
+"0206|MIA|MIN|900",
+"0206|UTA|DAL|900",
+"0207|HOU|SAC|1350",
+"0207|NYK|OKC|1290",
+"0207|BOS|PHI|1140",
+"0207|CHA|TOR|1080",
+"0207|LAC|DAL|990",
+"0207|UTA|MIN|930",
+"0207|GSW|DET|900",
+"0207|DEN|ATL|900",
+"0208|LAL|PHX|1290||Peacock",
+"0208|POR|MEM|1200",
+"0208|ORL|MIL|1200",
+"0208|CHI|WAS|1140",
+"0208|NOP|IND|1140",
+"0208|BKN|PHI|1140",
+"0208|MIA|ATL|1140",
+"0209|DET|LAC|1350",
+"0209|HOU|UTA|1320",
+"0209|SAC|MIL|1200",
+"0209|SAS|DAL|1200",
+"0209|POR|OKC|1200",
+"0209|GSW|CHI|1200",
+"0209|CHA|NYK|1170",
+"0209|MIN|BKN|1170",
+"0209|DEN|BOS|1170",
+"0209|TOR|CLE|1140",
+"0210|LAC|LAL|1320||ESPN",
+"0210|DET|PHX|1260",
+"0210|ORL|MEM|1200",
+"0210|GSW|BOS|1170",
+"0210|NOP|ATL|1140",
+"0210|MIA|WAS|1140",
+"0210|CLE|IND|1140",
+"0211|SAS|OKC|1290",
+"0211|CHI|DEN|1260",
+"0211|SAC|HOU|1230",
+"0211|POR|DAL|1200",
+"0211|NYK|PHI|1140",
+"0211|MIL|CHA|1140",
+"0211|UTA|IND|1140",
+"0212|DEN|LAL|1350||ESPN",
+"0212|HOU|NOP|1200",
+"0212|LAC|MEM|1200",
+"0212|MIN|BOS|1200",
+"0212|CLE|TOR|1170",
+"0212|PHX|ATL|1140",
+"0212|BKN|WAS|1140",
+"0212|MIA|ORL|1140",
+"0213|GSW|NYK|1230",
+"0213|MIL|WAS|1140",
+"0213|SAS|ORL|1140",
+"0213|PHI|OKC|1050",
+"0213|DET|POR|930",
+"0213|DAL|CHA|900",
+"0213|SAC|IND|840",
+"0214|CHI|POR|930",
+"0214|LAC|NOP|840",
+"0214|DEN|HOU|840",
+"0214|SAC|ATL|780",
+"0214|PHX|CLE|780",
+"0214|BKN|MIA|780",
+"0214|TOR|BOS|780",
+"0215|IND|GSW|1170",
+"0215|SAS|MIA|1020",
+"0215|PHI|DAL|870",
+"0215|MIN|CHA|720",
+"0215|DET|UTA|1260",
+"0215|NYK|MEM|1200",
+"0215|ORL|OKC|1200",
+"0215|PHX|WAS|1140",
+"0216|HOU|LAC|1380",
+"0216|CHI|LAL|1320",
+"0216|NOP|POR|1320",
+"0216|TOR|ATL|1200",
+"0216|MIL|CLE|1140",
+"0217|CHI|LAC|1350",
+"0217|IND|SAC|1320",
+"0217|NOP|GSW|1320",
+"0217|BOS|OKC|1290",
+"0217|UTA|DEN|1260",
+"0217|SAS|MEM|1200",
+"0217|ATL|BKN|1170",
+"0217|MIA|WAS|1140",
+"0217|DAL|ORL|1140",
+"0217|PHX|PHI|1140",
+"0217|NYK|DET|1140",
+"0217|MIL|CLE|1140",
+"0217|TOR|CHA|1140",
+"0218|IND|POR|1320",
+"0218|HOU|LAL|1320||Prime",
+"0218|BOS|MEM|1200",
+"0218|SAS|MIN|1170",
+"0225|UTA|LAC|1350",
+"0225|DAL|GSW|1320",
+"0225|PHX|NOP|1200",
+"0225|WAS|MIL|1200",
+"0225|ATL|CHI|1200",
+"0225|OKC|NYK|1170",
+"0225|PHI|BKN|1170",
+"0225|CHA|ORL|1140",
+"0225|MIA|DET|1140",
+"0225|SAC|CLE|1140",
+"0226|DAL|POR|1320",
+"0226|LAL|DEN|1320||ESPN",
+"0226|CHA|HOU|1230",
+"0226|MEM|SAS|1200",
+"0226|IND|MIN|1200",
+"0226|CLE|BOS|1170",
+"0226|ATL|TOR|1170",
+"0227|NOP|PHX|1260",
+"0227|PHI|NYK|1230",
+"0227|BKN|CHI|1200",
+"0227|SAC|MEM|1200",
+"0227|OKC|DET|1050",
+"0227|WAS|UTA|900",
+"0228|POR|LAC|1350",
+"0228|MIA|HOU|1290",
+"0228|MIL|NYK|1170",
+"0228|BOS|MIN|1140",
+"0228|SAC|CHA|1140",
+"0228|ATL|ORL|990",
+"0228|TOR|IND|960",
+"0228|LAL|DAL|930||ABC",
+"0228|DEN|SAS|780",
+"0301|WAS|PHX|1290",
+"0301|BKN|DEN|1260",
+"0301|GSW|HOU|1230",
+"0301|UTA|NOP|1200",
+"0301|CHI|DET|1140",
+"0301|PHI|CLE|1140",
+"0302|LAC|POR|1380",
+"0302|WAS|SAC|1320",
+"0302|MIN|OKC|1200",
+"0302|DET|MIL|1200",
+"0302|GSW|DAL|1200",
+"0302|MEM|NYK|1170",
+"0302|TOR|MIA|1170",
+"0302|LAL|ORL|1140",
+"0302|BOS|IND|1140",
+"0303|SAS|DEN|1320",
+"0303|BKN|PHX|1260",
+"0303|NOP|HOU|1230",
+"0303|UTA|MIL|1200",
+"0303|TOR|MIA|1170",
+"0303|CHA|PHI|1140",
+"0303|CHI|ATL|1140",
+"0304|BKN|LAC|1350",
+"0304|OKC|SAC|1320",
+"0304|WAS|GSW|1320",
+"0304|NYK|DAL|1290",
+"0304|MEM|ATL|1170",
+"0304|POR|CLE|1140",
+"0304|IND|ORL|1140",
+"0304|LAL|PHI|1140||Prime",
+"0305|SAS|HOU|1290",
+"0305|MIN|PHX|1260",
+"0305|MIL|NOP|1200",
+"0305|POR|TOR|1170",
+"0305|BOS|DET|1140",
+"0305|UTA|ORL|1140",
+"0306|LAC|SAC|1320",
+"0306|OKC|LAL|1230||ABC",
+"0306|NOP|MEM|1200",
+"0306|UTA|WAS|1140",
+"0306|ATL|CLE|1050",
+"0306|CHA|CHI|1020",
+"0306|IND|MIA|900",
+"0307|BKN|LAL|1350",
+"0307|HOU|GSW|1320",
+"0307|NYK|SAS|1170",
+"0307|POR|CHI|1020",
+"0307|MIN|DEN|930",
+"0307|PHI|BOS|780",
+"0308|HOU|LAC|1350",
+"0308|DEN|SAC|1320",
+"0308|DAL|OKC|1290",
+"0308|NOP|MIN|1200",
+"0308|ATL|MEM|1200",
+"0308|PHX|MIA|1170",
+"0308|UTA|PHI|1140",
+"0308|CHA|IND|1140",
+"0309|POR|GSW|1380",
+"0309|WAS|SAS|1200",
+"0309|CLE|DET|1200",
+"0309|BOS|CHI|1200",
+"0309|MEM|DAL|1200",
+"0309|MIL|BKN|1170",
+"0309|PHX|ORL|1140",
+"0310|NYK|LAC|1350",
+"0310|GSW|SAC|1320",
+"0310|DEN|POR|1320",
+"0310|ATL|MIN|1290",
+"0310|HOU|UTA|1260",
+"0310|OKC|TOR|1170",
+"0310|ORL|MIA|1140",
+"0310|NOP|CHA|1140",
+"0311|CLE|LAC|1350",
+"0311|NYK|LAL|1320||Prime",
+"0311|WAS|DAL|1200",
+"0311|PHX|CHI|1200",
+"0311|BKN|ATL|1200",
+"0311|PHI|SAS|1170",
+"0311|MEM|BOS|1170",
+"0311|IND|CHA|1140",
+"0311|MIL|DET|1140",
+"0312|CLE|LAL|1320",
+"0312|GSW|DEN|1320",
+"0312|SAC|UTA|1290",
+"0312|MIA|MIL|1200",
+"0312|TOR|NOP|1200",
+"0312|OKC|BOS|1170",
+"0313|LAC|POR|1350",
+"0313|PHI|MIN|1230",
+"0313|NOP|DAL|1200",
+"0313|MEM|CHI|1200",
+"0313|PHX|CHA|1080",
+"0313|IND|HOU|1050",
+"0313|BKN|DET|900",
+"0313|ORL|ATL|900",
+"0314|GSW|LAL|1320||NBC",
+"0314|WAS|MIN|1200",
+"0314|MIA|DEN|1170",
+"0314|CLE|SAC|1080",
+"0314|DET|TOR|1020",
+"0314|SAS|OKC|870",
+"0314|BOS|NYK|720",
+"0315|ATL|DAL|1290",
+"0315|PHX|MEM|1200",
+"0315|ORL|CHI|1200",
+"0315|IND|BKN|1170",
+"0315|TOR|PHI|1140",
+"0316|DEN|LAC|1380",
+"0316|LAL|POR|1320",
+"0316|CLE|GSW|1320",
+"0316|SAS|HOU|1230",
+"0316|CHA|OKC|1200",
+"0316|MIN|NOP|1200",
+"0316|ORL|MIL|1200",
+"0316|DET|IND|1200",
+"0316|SAC|BOS|1170",
+"0316|NYK|WAS|1140",
+"0317|MIA|POR|1320",
+"0317|PHX|LAL|1320||ESPN",
+"0317|MEM|GSW|1320",
+"0317|ATL|UTA|1260",
+"0317|BKN|HOU|1230",
+"0317|SAC|NYK|1170",
+"0317|DAL|OKC|1170",
+"0317|CHI|PHI|1140",
+"0318|MEM|LAC|1350",
+"0318|MIN|UTA|1260",
+"0318|CLE|DEN|1260",
+"0318|BKN|SAS|1200",
+"0318|CHA|NOP|1200",
+"0318|DET|MIL|1200",
+"0318|ORL|BOS|1170",
+"0318|TOR|IND|1140",
+"0318|PHI|WAS|1140",
+"0319|MIA|PHX|1350",
+"0319|ATL|LAL|1320",
+"0319|POR|GSW|1320",
+"0319|DAL|SAS|1200",
+"0319|HOU|NOP|1200",
+"0319|SAC|TOR|1170",
+"0320|ATL|LAC|1350",
+"0320|OKC|MEM|1200",
+"0320|CHA|DET|1200",
+"0320|IND|MIL|1200",
+"0320|CHI|CLE|1170",
+"0320|DEN|ORL|1140",
+"0320|WAS|NYK|780",
+"0321|DAL|LAL|1320||NBC",
+"0321|SAS|PHI|1170",
+"0321|DEN|MIA|1080",
+"0321|POR|PHX|1020",
+"0321|TOR|UTA|1020",
+"0321|SAC|BKN|900",
+"0321|NOP|BOS|900",
+"0322|DAL|LAC|1350",
+"0322|ATL|GSW|1320",
+"0322|DET|MIN|1290",
+"0322|CHA|MEM|1200",
+"0322|WAS|MIL|1200",
+"0322|SAC|CHI|1200",
+"0322|IND|ORL|1140",
+"0322|HOU|CLE|1140",
+"0323|OKC|PHX|1380",
+"0323|TOR|POR|1320",
+"0323|PHI|UTA|1260",
+"0323|LAL|MIA|1200||NBC",
+"0323|NOP|NYK|1170",
+"0323|BOS|BKN|1170",
+"0324|MIL|LAC|1350",
+"0324|ATL|SAC|1320",
+"0324|OKC|PHX|1320",
+"0324|PHI|GSW|1320",
+"0324|DAL|MIN|1200",
+"0324|ORL|CHI|1200",
+"0324|HOU|NYK|1170",
+"0324|SAS|BOS|1170",
+"0324|MEM|IND|1140",
+"0324|DET|CHA|1140",
+"0324|DEN|WAS|1140",
+"0325|TOR|GSW|1320",
+"0325|CHI|MEM|1200",
+"0325|UTA|MIA|1170",
+"0325|DEN|BKN|1170",
+"0325|SAS|IND|1140",
+"0325|LAL|CLE|1140",
+"0325|HOU|DET|1140",
+"0326|PHI|POR|1320",
+"0326|MIL|PHX|1320",
+"0326|LAC|OKC|1200",
+"0326|NOP|DAL|1200",
+"0326|ORL|MIN|1200",
+"0326|NYK|CHA|1140",
+"0327|TOR|SAC|1320",
+"0327|MIL|POR|1320",
+"0327|BOS|MIA|1200",
+"0327|LAC|CHI|1200",
+"0327|GSW|WAS|1140",
+"0327|UTA|ATL|1140",
+"0327|SAS|DET|900",
+"0328|PHI|DEN|1320",
+"0328|TOR|PHX|1260",
+"0328|OKC|MIN|1170",
+"0328|BOS|NOP|1140",
+"0328|DAL|WAS|1080",
+"0328|UTA|CHA|1080",
+"0328|LAL|HOU|900||ESPN",
+"0328|MEM|BKN|900",
+"0328|NYK|ORL|750",
+"0329|DEN|SAC|1320",
+"0329|PHX|SAS|1290",
+"0329|DAL|MIL|1200",
+"0329|IND|CHI|1200",
+"0329|GSW|BKN|1170",
+"0329|LAC|DET|1140",
+"0329|MIN|ATL|1140",
+"0329|MIA|CLE|1140",
+"0330|HOU|POR|1380",
+"0330|OKC|UTA|1260",
+"0330|BOS|IND|1200",
+"0330|LAL|MEM|1200",
+"0330|NYK|ORL|1200",
+"0330|MIA|CHA|1140",
+"0331|HOU|POR|1320",
+"0331|DEN|DAL|1290",
+"0331|PHX|SAS|1200",
+"0331|SAC|MIN|1200",
+"0331|NOP|MIL|1200",
+"0401|LAL|OKC|1290||Prime",
+"0401|CHA|NYK|1170",
+"0401|ORL|IND|1140",
+"0401|BOS|CLE|1140",
+"0402|SAS|LAC|1350",
+"0402|DEN|PHX|1320",
+"0402|UTA|POR|1320",
+"0402|MEM|HOU|1230",
+"0402|ATL|TOR|1230",
+"0402|CHA|MIL|1200",
+"0402|DET|CHI|1200",
+"0402|SAC|DAL|1200",
+"0402|GSW|MIN|1170",
+"0402|NYK|BKN|1170",
+"0402|MIA|BOS|1170",
+"0402|PHI|WAS|1140",
+"0403|WAS|ORL|1140",
+"0403|NOP|OKC|1020",
+"0404|SAS|LAL|1320||NBC",
+"0404|BOS|NYK|1170",
+"0404|GSW|SAC|1080",
+"0404|POR|UTA|1020",
+"0404|MEM|DEN|1020",
+"0404|PHX|LAC|990",
+"0404|CHI|HOU|960",
+"0404|IND|TOR|930",
+"0404|MIN|DAL|900",
+"0404|MIA|DET|900",
+"0404|CHA|CLE|900",
+"0404|BKN|MIL|840",
+"0404|ATL|PHI|780",
+"0405|WAS|NOP|1200",
+"0405|BKN|CLE|1140",
+"0405|MIA|ORL|1140",
+"0406|PHX|GSW|1380",
+"0406|MIN|LAC|1350",
+"0406|DAL|LAL|1320",
+"0406|OKC|UTA|1260",
+"0406|NOP|DEN|1260",
+"0406|SAC|SAS|1200",
+"0406|CHI|MIL|1200",
+"0406|DET|MEM|1200",
+"0406|NYK|ATL|1200",
+"0406|PHI|TOR|1170",
+"0406|IND|CHA|1140",
+"0407|DAL|POR|1320",
+"0407|MIN|LAL|1320||ESPN",
+"0407|SAC|HOU|1230",
+"0407|WAS|MEM|1200",
+"0407|CHA|CHI|1200",
+"0407|CLE|SAS|1170",
+"0407|BKN|TOR|1170",
+"0407|BOS|ORL|1140",
+"0407|IND|DET|1140",
+"0408|GSW|OKC|1290",
+"0408|NOP|UTA|1260",
+"0408|LAC|DEN|1260",
+"0408|NYK|MIL|1200",
+"0408|PHI|MIA|1140",
+"0409|DAL|SAC|1320",
+"0409|MEM|PHX|1320",
+"0409|MIN|LAL|1320",
+"0409|LAC|UTA|1290",
+"0409|DEN|SAS|1290",
+"0409|POR|HOU|1230",
+"0409|MIL|CHI|1200",
+"0409|WAS|MIA|1200",
+"0409|GSW|OKC|1200",
+"0409|TOR|ORL|1140",
+"0409|BKN|CHA|1140",
+"0409|DET|NYK|1140",
+"0409|CLE|IND|1140",
+"0409|BOS|ATL|1140",
+"0411|SAC|LAC|1230",
+"0411|PHX|LAL|1230",
+"0411|UTA|GSW|1230",
+"0411|HOU|MIN|1230",
+"0411|OKC|DEN|1230",
+"0411|MEM|DAL|1230",
+"0411|POR|SAS|1230",
+"0411|CHI|NOP|1080",
+"0411|DET|WAS|1080",
+"0411|CHA|PHI|1080",
+"0411|IND|NYK|1080",
+"0411|ATL|CLE|1080",
+"0411|MIL|BOS|1080",
+"0411|ORL|MIA|1080",
+"0411|TOR|BKN|1080",
+"0131|LAL|CHA|1140",
+"0131|CHI|OKC|1080",
+"0131|BKN|ORL|1080",
+"0131|SAC|DET|900",
+"0131|BOS|TOR|1080",
+"0131|HOU|DAL|1230",
+"0131|POR|DEN|1200",
+"0331|CHI|WAS|1140",
+"0331|CLE|BKN|1170",
+"0331|TOR|DET|1140",
+"0331|GSW|PHI|1140",
+"0331|LAC|ATL|1140",
+"0131|PHX|MIN|1080"
+];
+
+  var games = RAW.map(function (r) {
+    var p = r.split("|"), mm = +p[0].slice(0, 2), dd = +p[0].slice(2);
+    var y = mm >= 10 ? 2026 : 2027;
+    return { key: y + "-" + pad(mm) + "-" + pad(dd), y: y, m: mm - 1, d: dd, away: p[1], home: p[2],
+             et: +p[3], cup: p[4] === "c", tv: p[5] || "" };
+  });
+  games.sort(function (a, b) { return a.key < b.key ? -1 : a.key > b.key ? 1 : a.et - b.et; });
   var byDate = {};
-  games.forEach(function (g) { byDate[g.key] = g; });
+  games.forEach(function (g) { (byDate[g.key] = byDate[g.key] || []).push(g); });
 
   var MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   var DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
   var SEASON = [[2026,9],[2026,10],[2026,11],[2027,0],[2027,1],[2027,2],[2027,3]];
   var OFFSET = { ET: 0, CT: -60, PT: -180 };
+  var MAX_TEAMS = 8;
 
+  /* state */
   var tz = "CT";
-  try { var s = localStorage.getItem("lal-tz"); if (s && OFFSET.hasOwnProperty(s)) tz = s; } catch (e) {}
+  var picks = [{ t: "LAL", c: 0 }];
+  try {
+    var s = localStorage.getItem("nba-cal-tz"); if (s && OFFSET.hasOwnProperty(s)) tz = s;
+    var p = JSON.parse(localStorage.getItem("nba-cal-teams") || "null");
+    if (Array.isArray(p)) picks = p.filter(function (x) { return x && TEAMS[x.t] && x.c >= 0 && x.c < MAX_TEAMS; });
+  } catch (e) {}
+  function save() {
+    try { localStorage.setItem("nba-cal-teams", JSON.stringify(picks)); localStorage.setItem("nba-cal-tz", tz); } catch (e) {}
+  }
 
   var now = new Date();
   var todayKey = now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate());
@@ -272,29 +1520,130 @@ button { font: inherit; color: inherit; }
   if (now > new Date(2027, 3, 30)) idx = SEASON.length - 1;
 
   function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function fmtTime(g) {
-    var m = g.etMin + OFFSET[tz];
+    var m = g.et + OFFSET[tz];
     var h = Math.floor(m / 60), mm = m % 60, ap = h >= 12 ? "pm" : "am";
     var h12 = h % 12 === 0 ? 12 : h % 12;
     return h12 + (mm ? ":" + pad(mm) : "") + ap;
   }
+  function pickOf(ab) { for (var i = 0; i < picks.length; i++) if (picks[i].t === ab) return picks[i]; return null; }
   function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
 
-  var grid = document.getElementById("grid");
-  var list = document.getElementById("games");
+  /* ---------- team search ---------- */
+  var input = document.getElementById("team-search");
+  var results = document.getElementById("team-results");
+  var active = -1, shown = [];
+
+  function matches(q) {
+    q = q.trim().toLowerCase();
+    if (!q) return TEAM_LIST.slice();
+    var words = q.split(/\s+/);
+    return TEAM_LIST.filter(function (t) {
+      return words.every(function (w) { return t.hay.split(" ").some(function (h) { return h.indexOf(w) === 0; }) || t.hay.indexOf(w) >= 0 && w.length > 2; });
+    });
+  }
+  function openResults() {
+    shown = matches(input.value);
+    results.innerHTML = "";
+    if (!shown.length) {
+      results.appendChild(el("li", "none", "No team matches “" + esc(input.value.trim()) + "”."));
+    }
+    shown.forEach(function (t, i) {
+      var on = !!pickOf(t.ab);
+      var li = el("li");
+      li.id = "opt-" + t.ab; li.setAttribute("role", "option");
+      li.setAttribute("aria-selected", i === active ? "true" : "false");
+      li.innerHTML = '<span class="ab">' + t.ab + '</span><span class="nm">' + esc(t.full) + ' <span class="cf">' + t.conf + '</span></span>' +
+        '<span class="st' + (on ? ' on' : '') + '">' + (on ? "✓ On calendar" : "Add") + '</span>';
+      li.addEventListener("mousedown", function (e) { e.preventDefault(); choose(t.ab); });
+      results.appendChild(li);
+    });
+    results.hidden = false;
+    input.setAttribute("aria-expanded", "true");
+    if (active >= 0 && shown[active]) input.setAttribute("aria-activedescendant", "opt-" + shown[active].ab);
+    else input.removeAttribute("aria-activedescendant");
+  }
+  function closeResults() {
+    results.hidden = true; active = -1;
+    input.setAttribute("aria-expanded", "false"); input.removeAttribute("aria-activedescendant");
+  }
+  function choose(ab) {
+    var existing = pickOf(ab);
+    if (existing) { removeTeam(ab); }
+    else {
+      if (picks.length >= MAX_TEAMS) { flashHint("You can show up to " + MAX_TEAMS + " teams. Remove one to add another."); return; }
+      var used = picks.map(function (p) { return p.c; }), c = 0;
+      while (used.indexOf(c) >= 0) c++;
+      picks.push({ t: ab, c: c });
+      flashHint("Added the " + TEAMS[ab].full + ".");
+    }
+    save(); input.value = ""; active = -1; render(); openResults();
+  }
+  function removeTeam(ab) {
+    picks = picks.filter(function (p) { return p.t !== ab; });
+    save(); render();
+    if (!results.hidden) openResults();
+  }
+  var hintTimer;
+  function flashHint(msg) {
+    var h = document.getElementById("chip-hint");
+    if (h) { h.textContent = msg; clearTimeout(hintTimer); hintTimer = setTimeout(renderChips, 2600); }
+  }
+
+  input.addEventListener("focus", function () { openResults(); });
+  input.addEventListener("input", function () { active = input.value.trim() && matches(input.value).length ? 0 : -1; openResults(); });
+  input.addEventListener("blur", function () { setTimeout(closeResults, 120); });
+  input.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowDown") { e.preventDefault(); active = Math.min(shown.length - 1, active + 1); openResults(); scrollActive(); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); active = Math.max(0, active - 1); openResults(); scrollActive(); }
+    else if (e.key === "Enter") { e.preventDefault(); var t = shown[active >= 0 ? active : 0]; if (t && (input.value.trim() || active >= 0)) choose(t.ab); }
+    else if (e.key === "Escape") { closeResults(); input.blur(); }
+  });
+  function scrollActive() { var a = results.querySelector('[aria-selected="true"]'); if (a) a.scrollIntoView({ block: "nearest" }); }
+
+  /* ---------- rendering ---------- */
+  function renderChips() {
+    var box = document.getElementById("chips");
+    box.innerHTML = "";
+    picks.forEach(function (p) {
+      var t = TEAMS[p.t];
+      var chip = el("span", "chip c" + p.c, esc(t.full));
+      var x = el("button"); x.type = "button"; x.innerHTML = "×";
+      x.setAttribute("aria-label", "Remove " + t.full);
+      x.addEventListener("click", function () { removeTeam(p.t); });
+      chip.appendChild(x); box.appendChild(chip);
+    });
+    var hint = el("span", "hint");
+    hint.id = "chip-hint";
+    hint.textContent = picks.length ? "" : "No teams yet. Search above to add one.";
+    box.appendChild(hint);
+  }
 
   function renderNext() {
     var box = document.getElementById("next");
+    box.innerHTML = "";
     var today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    var g = games.find(function (x) { return new Date(x.y, x.m, x.d) >= today0; });
-    if (!g) { box.innerHTML = '<span class="label">Season complete</span><span class="what">All 80 dated games have been played.</span>'; return; }
-    var gd = new Date(g.y, g.m, g.d);
-    var days = Math.round((gd - today0) / 86400000);
-    var count = days === 0 ? "Today" : days === 1 ? "Tomorrow" : "In " + days + " days";
-    box.innerHTML = '<span class="label">Next game</span>' +
-      '<span class="what">' + (g.home ? "vs " : "at ") + TEAMS[g.opp][0] + " " + TEAMS[g.opp][1] + '</span>' +
-      '<span class="when">' + DOW[gd.getDay()] + ", " + MONTHS[g.m].slice(0,3) + " " + g.d + " · " + fmtTime(g) + " " + tz + (g.tv ? " · " + g.tv : "") + '</span>' +
-      '<span class="count">' + count + '</span>';
+    picks.forEach(function (p) {
+      var g = games.find(function (x) { return (x.home === p.t || x.away === p.t) && new Date(x.y, x.m, x.d) >= today0; });
+      var item = el("div", "next-item c" + p.c);
+      if (!g) {
+        item.innerHTML = '<span class="bar"></span><div class="txt"><div class="lbl">' + esc(TEAMS[p.t].name) + '</div><div class="what">Regular season complete</div></div>';
+      } else {
+        var gd = new Date(g.y, g.m, g.d);
+        var days = Math.round((gd - today0) / 86400000);
+        var home = g.home === p.t, opp = TEAMS[home ? g.away : g.home];
+        item.innerHTML = '<span class="bar"></span><div class="txt"><div class="lbl">' + esc(TEAMS[p.t].name) + ' next game</div>' +
+          '<div class="what">' + (home ? "vs " : "at ") + esc(opp.full) + '</div>' +
+          '<div class="when">' + DOW[gd.getDay()] + ", " + MONTHS[g.m].slice(0, 3) + " " + g.d + " · " + fmtTime(g) + " " + tz + '</div></div>' +
+          '<span class="count">' + (days === 0 ? "Today" : days === 1 ? "Tomorrow" : "In " + days + " days") + '</span>';
+      }
+      box.appendChild(item);
+    });
+  }
+
+  function gamesFor(key) {
+    return (byDate[key] || []).filter(function (g) { return pickOf(g.home) || pickOf(g.away); });
   }
 
   function render() {
@@ -302,59 +1651,82 @@ button { font: inherit; color: inherit; }
     document.getElementById("month-name").textContent = MONTHS[m] + " " + y;
     document.getElementById("prev").disabled = idx === 0;
     document.getElementById("next-btn").disabled = idx === SEASON.length - 1;
+    document.querySelectorAll(".tz button").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.tz === tz ? "true" : "false"); });
 
-    var monthGames = games.filter(function (g) { return g.y === y && g.m === m; });
-    var h = monthGames.filter(function (g) { return g.home; }).length;
-    document.getElementById("month-sum").textContent =
-      monthGames.length + " games · " + h + " home · " + (monthGames.length - h) + " away";
+    var monthGames = games.filter(function (g) { return g.y === y && g.m === m && (pickOf(g.home) || pickOf(g.away)); });
+    var sum = document.getElementById("month-sum");
+    if (picks.length === 1) {
+      var h = monthGames.filter(function (g) { return g.home === picks[0].t; }).length;
+      sum.textContent = monthGames.length + " games · " + h + " home · " + (monthGames.length - h) + " away";
+    } else if (picks.length) {
+      sum.textContent = monthGames.length + " games across " + picks.length + " teams";
+    } else sum.textContent = "Add a team to see its games";
     document.getElementById("list-head").textContent = MONTHS[m] + " games · times in " + tz;
 
+    /* grid */
+    var grid = document.getElementById("grid");
     grid.innerHTML = "";
-    var first = new Date(y, m, 1).getDay();
-    var daysIn = new Date(y, m + 1, 0).getDate();
+    var first = new Date(y, m, 1).getDay(), daysIn = new Date(y, m + 1, 0).getDate();
+    var multi = picks.length > 1;
     for (var b = 0; b < first; b++) grid.appendChild(el("div", "day blank"));
     for (var d = 1; d <= daysIn; d++) {
       var key = y + "-" + pad(m + 1) + "-" + pad(d);
-      var g = byDate[key];
+      var list = gamesFor(key);
       var cell;
-      if (g) {
-        cell = el("button", "day game " + (g.home ? "home" : "away") + (g.cup ? " cup" : ""));
-        cell.type = "button";
-        cell.dataset.key = key;
-        cell.setAttribute("aria-label", MONTHS[m] + " " + d + ": " + (g.home ? "home vs " : "away at ") + TEAMS[g.opp][0] + " " + TEAMS[g.opp][1] + ", " + fmtTime(g) + " " + tz);
-        cell.innerHTML = '<span class="num">' + d + '</span>' +
-          '<span class="opp"><small>' + (g.home ? "vs" : "@") + '</small>' + g.opp + '</span>' +
-          '<span class="tm">' + fmtTime(g) + '</span>' +
-          '<span class="tag">' + (g.home ? "Home" : "Away") + '</span>';
+      if (list.length) {
+        cell = el("button", "day has"); cell.type = "button"; cell.dataset.key = key;
+        var html = '<span class="num">' + d + '</span>', labels = [], cup = false, n = 0;
+        picks.forEach(function (p) {
+          list.forEach(function (g) {
+            if (g.home !== p.t && g.away !== p.t) return;
+            var home = g.home === p.t, opp = home ? g.away : g.home;
+            if (g.cup) cup = true;
+            labels.push(TEAMS[p.t].name + (home ? " home vs " : " at ") + TEAMS[opp].full + " " + fmtTime(g) + " " + tz);
+            n++;
+            if (n > 4) return;
+            html += '<span class="g c' + p.c + ' ' + (home ? "home" : "away") + '">' +
+              (multi ? '<span class="own">' + p.t + '</span>' : "") + (home ? "vs " : "@ ") + opp +
+              (!multi ? '<span class="tm">' + fmtTime(g) + '</span>' : "") + '</span>';
+          });
+        });
+        if (n > 4) html += '<span class="more">+' + (n - 4) + ' more</span>';
+        cell.innerHTML = html;
+        if (cup) cell.classList.add("cup");
+        cell.setAttribute("aria-label", MONTHS[m] + " " + d + ": " + labels.join("; "));
         cell.addEventListener("click", onPick);
       } else {
-        cell = el("div", "day", '<span class="num">' + d + '</span>');
+        cell = el("div", "day empty", '<span class="num">' + d + '</span>');
       }
       if (key === todayKey) cell.classList.add("today");
       grid.appendChild(cell);
     }
 
-    list.innerHTML = "";
-    if (!monthGames.length) {
-      list.appendChild(el("li", "empty", "No games this month."));
-    }
+    /* list */
+    var ul = document.getElementById("games");
+    ul.innerHTML = "";
+    if (!picks.length) ul.appendChild(el("li", "empty-msg", "Add a team above to list its games."));
+    else if (!monthGames.length) ul.appendChild(el("li", "empty-msg", "No games for your teams this month."));
     monthGames.forEach(function (g) {
       var gd = new Date(g.y, g.m, g.d);
-      var li = el("li");
-      li.id = "g-" + g.key;
-      li.innerHTML =
-        '<div class="g-date">' + MONTHS[g.m].slice(0,3) + " " + g.d + '<small>' + DOW[gd.getDay()] + '</small></div>' +
-        '<span class="pill ' + (g.home ? "home" : "away") + '">' + (g.home ? "Home" : "Away") + '</span>' +
-        '<div class="g-opp"><b>' + (g.home ? "vs " : "at ") + TEAMS[g.opp][0] + " " + TEAMS[g.opp][1] + '</b>' +
-          '<span class="venue">' + (g.home ? "Crypto.com Arena" : "Road game in " + TEAMS[g.opp][0]) +
-          (g.cup ? ' · <span class="cupnote">NBA Cup</span>' : "") + '</span></div>' +
-        '<div class="g-meta">' + fmtTime(g) + " " + tz + '<small>' + (g.tv || "Local TV") + '</small></div>';
-      list.appendChild(li);
+      var pa = pickOf(g.away), ph = pickOf(g.home);
+      var li = el("li", "row"); li.dataset.key = g.key;
+      var mid;
+      if (pa && ph) {
+        mid = '<div class="line"><span class="team-name c' + pa.c + '">' + esc(TEAMS[g.away].full) + '</span> at <span class="team-name c' + ph.c + '">' + esc(TEAMS[g.home].full) + '</span>' +
+              '<span class="pill both">Your teams meet</span></div>';
+      } else {
+        var p = ph || pa, home = !!ph, opp = TEAMS[home ? g.away : g.home];
+        mid = '<div class="line"><span class="pill c' + p.c + ' ' + (home ? "home" : "away") + '">' + (home ? "Home" : "Away") + '</span>' +
+              '<span><span class="team-name c' + p.c + '">' + esc(TEAMS[p.t].name) + '</span> ' + (home ? "vs " : "at ") + '<b>' + esc(opp.full) + '</b></span></div>';
+      }
+      mid += '<div class="sub">In ' + esc(TEAMS[g.home].city === "LA" ? "Los Angeles" : TEAMS[g.home].city) + (g.cup ? ' · <span class="cupnote">NBA Cup</span>' : "") + '</div>';
+      li.innerHTML = '<div class="g-date">' + MONTHS[g.m].slice(0, 3) + " " + g.d + '<small>' + DOW[gd.getDay()] + '</small></div>' +
+        '<div class="g-mid">' + mid + '</div>' +
+        '<div class="g-meta">' + fmtTime(g) + " " + tz + (g.tv ? '<small>' + esc(g.tv) + '</small>' : "") + '</div>';
+      ul.appendChild(li);
     });
 
-    document.querySelectorAll(".tz button").forEach(function (bt) {
-      bt.setAttribute("aria-pressed", bt.dataset.tz === tz ? "true" : "false");
-    });
+    renderChips();
     renderNext();
   }
 
@@ -362,32 +1734,21 @@ button { font: inherit; color: inherit; }
     var key = e.currentTarget.dataset.key;
     document.querySelectorAll(".day.selected").forEach(function (c) { c.classList.remove("selected"); });
     e.currentTarget.classList.add("selected");
-    var row = document.getElementById("g-" + key);
-    if (row) {
-      row.classList.add("flash");
-      row.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest" });
-      setTimeout(function () { row.classList.remove("flash"); }, 1600);
-    }
+    var rows = document.querySelectorAll('#games li[data-key="' + key + '"]');
+    rows.forEach(function (r) { r.classList.add("flash"); setTimeout(function () { r.classList.remove("flash"); }, 1600); });
+    if (rows[0]) rows[0].scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest" });
   }
 
-  function go(step) {
-    var n = idx + step;
-    if (n < 0 || n >= SEASON.length) return;
-    idx = n; render();
-  }
+  function go(step) { var n = idx + step; if (n < 0 || n >= SEASON.length) return; idx = n; render(); }
   document.getElementById("prev").addEventListener("click", function () { go(-1); });
   document.getElementById("next-btn").addEventListener("click", function () { go(1); });
   document.addEventListener("keydown", function (e) {
-    if (e.target.closest && e.target.closest("input,textarea")) return;
+    if (e.target === input) return;
     if (e.key === "ArrowLeft") go(-1);
     if (e.key === "ArrowRight") go(1);
   });
-  document.querySelectorAll(".tz button").forEach(function (bt) {
-    bt.addEventListener("click", function () {
-      tz = bt.dataset.tz;
-      try { localStorage.setItem("lal-tz", tz); } catch (e) {}
-      render();
-    });
+  document.querySelectorAll(".tz button").forEach(function (b) {
+    b.addEventListener("click", function () { tz = b.dataset.tz; save(); render(); });
   });
 
   render();
