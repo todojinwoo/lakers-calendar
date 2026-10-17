@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#552583">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Lakers">
+<title>Lakers Game Calendar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+/* Layout: a single scoreboard-style column — next-game strip, month header with arrows, 7-day grid, then the month's game list */
+:root {
+  --bg: #f6f4fa;
+  --surface: #ffffff;
+  --ink: #1d1430;
+  --muted: #6c6482;
+  --line: #e3dfec;
+  --purple: #552583;
+  --purple-ink: #ffffff;
+  --gold: #fdb927;
+  --gold-ink: #1d1430;
+  --cup: #b8860b;
+  --focus: #7a3fc0;
+  --font-display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+  --font-body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-data: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #110c1b; --surface: #1b1428; --ink: #eee9f6; --muted: #a59cba; --line: #2e2541;
+    --purple: #6a32a3; --purple-ink: #ffffff; --gold: #fdb927; --gold-ink: #1d1430;
+    --cup: #e7b84a; --focus: #c9a2ff; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #110c1b; --surface: #1b1428; --ink: #eee9f6; --muted: #a59cba; --line: #2e2541;
+  --purple: #6a32a3; --purple-ink: #ffffff; --gold: #fdb927; --gold-ink: #1d1430;
+  --cup: #e7b84a; --focus: #c9a2ff; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+}
+.wrap {
+  max-width: 920px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 48px;
+  display: flex; flex-direction: column; gap: 20px;
+}
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* Top strip */
+.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 20px; }
+.eyebrow { font-family: var(--font-data); font-weight: 600; letter-spacing: .14em; text-transform: uppercase; font-size: 13px; color: var(--muted); }
+.brand { font-family: var(--font-display); font-weight: 900; font-size: clamp(34px, 7vw, 52px); line-height: .95; letter-spacing: .01em; text-transform: uppercase; margin: 2px 0 0; text-wrap: balance; }
+.brand span { color: var(--purple); }
+:root[data-theme="dark"] .brand span { color: var(--gold); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .brand span { color: var(--gold); } }
+
+.tz { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--surface); }
+.tz button { border: 0; background: transparent; padding: 5px 12px; border-radius: 999px; cursor: pointer; font-family: var(--font-data); font-weight: 600; font-size: 14px; letter-spacing: .06em; color: var(--muted); }
+.tz button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+
+.next {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px;
+}
+.next .label { font-family: var(--font-data); font-weight: 700; text-transform: uppercase; letter-spacing: .12em; font-size: 12px; color: var(--muted); }
+.next .what { font-weight: 600; }
+.next .when { color: var(--muted); font-variant-numeric: tabular-nums; }
+.next .count { margin-left: auto; font-family: var(--font-data); font-weight: 700; font-size: 15px; }
+
+/* Month header */
+.month-bar { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; }
+.nav-btn {
+  width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface);
+  cursor: pointer; display: grid; place-items: center; font-size: 20px; line-height: 1;
+}
+.nav-btn:hover:not(:disabled) { border-color: var(--purple); }
+.nav-btn:disabled { opacity: .35; cursor: default; }
+.month-title { text-align: center; min-width: 0; }
+.month-title h2 { margin: 0; font-family: var(--font-display); font-weight: 800; font-size: clamp(30px, 6vw, 44px); line-height: 1; text-transform: uppercase; letter-spacing: .02em; }
+.month-title .sum { font-family: var(--font-data); font-weight: 500; font-size: 15px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; justify-content: center; font-size: 14px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { width: 16px; height: 16px; border-radius: 4px; display: inline-block; }
+.sw.home { background: var(--gold); }
+.sw.away { background: var(--purple); }
+.sw.cup { width: 8px; height: 8px; border-radius: 50%; background: var(--cup); }
+
+/* Calendar grid */
+.cal { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+.dow, .grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.dow div { text-align: center; font-family: var(--font-data); font-weight: 600; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); padding-block: 4px 8px; }
+.day {
+  min-height: 92px; border-radius: 8px; padding: 6px 7px; border: 1px solid transparent;
+  display: flex; flex-direction: column; gap: 2px; text-align: left; background: transparent;
+  font-variant-numeric: tabular-nums; position: relative; min-width: 0;
+}
+.day.blank { visibility: hidden; }
+.day .num { font-family: var(--font-data); font-weight: 600; font-size: 15px; color: var(--muted); }
+.day.game { cursor: pointer; }
+.day.home { background: var(--gold); color: var(--gold-ink); }
+.day.away { background: var(--purple); color: var(--purple-ink); }
+.day.game .num { color: inherit; opacity: .8; }
+.day .opp { font-family: var(--font-display); font-weight: 800; font-size: 22px; line-height: 1; letter-spacing: .02em; }
+.day .opp small { font-family: var(--font-data); font-weight: 600; font-size: 13px; margin-right: 3px; opacity: .85; }
+.day .tm { font-family: var(--font-data); font-weight: 600; font-size: 13px; opacity: .9; }
+.day .tag { font-family: var(--font-data); font-weight: 700; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; opacity: .85; margin-top: auto; }
+.day.cup::after { content: ""; position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--cup); box-shadow: 0 0 0 2px var(--surface); }
+.day.today { border-color: var(--ink); border-width: 2px; }
+.day.today:not(.game) .num { color: var(--ink); font-weight: 700; }
+.day.game:hover { filter: brightness(1.06); }
+.day.selected { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--ink); }
+
+@media (max-width: 560px) {
+  .cal { padding: 6px; }
+  .dow, .grid { gap: 3px; }
+  .day { min-height: 60px; padding: 4px; }
+  .day .opp { font-size: 16px; }
+  .day .opp small { display: block; font-size: 11px; margin: 0; }
+  .day .tm, .day .tag { display: none; }
+  .day.cup::after { top: 5px; right: 5px; width: 6px; height: 6px; }
+}
+
+/* Game list */
+.list-head { font-family: var(--font-data); font-weight: 700; text-transform: uppercase; letter-spacing: .12em; font-size: 13px; color: var(--muted); margin: 6px 0 0; }
+.games { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden; }
+.games li { display: grid; grid-template-columns: 74px 64px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 14px; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; transition: background .2s; }
+.games li:first-child { border-top: 0; }
+.games li.flash { background: color-mix(in srgb, var(--gold) 22%, var(--surface)); }
+.g-date { font-family: var(--font-data); font-weight: 600; font-size: 15px; }
+.g-date small { display: block; color: var(--muted); font-weight: 500; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+.pill { font-family: var(--font-data); font-weight: 700; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; text-align: center; padding: 3px 8px; border-radius: 999px; }
+.pill.home { background: var(--gold); color: var(--gold-ink); }
+.pill.away { background: var(--purple); color: var(--purple-ink); }
+.g-opp { min-width: 0; }
+.g-opp b { font-weight: 600; }
+.g-opp .venue { display: block; color: var(--muted); font-size: 13px; }
+.g-meta { text-align: right; font-family: var(--font-data); font-weight: 600; font-size: 15px; white-space: nowrap; }
+.g-meta small { display: block; color: var(--muted); font-weight: 500; font-size: 12px; letter-spacing: .06em; }
+.cupnote { color: var(--cup); font-weight: 600; }
+@media (max-width: 560px) {
+  .games li { grid-template-columns: 56px minmax(0, 1fr) auto; gap: 10px; padding: 10px 12px; }
+  .games li .pill { display: none; }
+}
+.empty { padding: 18px 14px; color: var(--muted); }
+
+.note { color: var(--muted); font-size: 13px; max-width: 70ch; }
+.note p { margin: 0 0 6px; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+</head>
+<body>
+<noscript><p style="padding:16px;font-family:system-ui">This calendar needs JavaScript. Open the file in Safari or Chrome instead of an email or file preview.</p></noscript>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Regular season · Oct 2026 – Apr 2027</div>
+      <h1 class="brand">Los Angeles <span>Lakers</span></h1>
+    </div>
+    <div class="tz" role="group" aria-label="Time zone">
+      <button type="button" id="tz-et" data-tz="ET">ET</button>
+      <button type="button" id="tz-ct" data-tz="CT">CT</button>
+      <button type="button" id="tz-pt" data-tz="PT">PT</button>
+    </div>
+  </header>
+
+  <section class="next" id="next" aria-live="polite"></section>
+
+  <section aria-label="Monthly calendar" style="display:flex;flex-direction:column;gap:14px">
+    <div class="month-bar">
+      <button class="nav-btn" id="prev" type="button" aria-label="Previous month">‹</button>
+      <div class="month-title">
+        <h2 id="month-name">October 2026</h2>
+        <div class="sum" id="month-sum"></div>
+      </div>
+      <button class="nav-btn" id="next-btn" type="button" aria-label="Next month">›</button>
+    </div>
+    <div class="legend">
+      <span><i class="sw home"></i>Home · Crypto.com Arena</span>
+      <span><i class="sw away"></i>Away</span>
+      <span><i class="sw cup"></i>NBA Cup group game</span>
+    </div>
+    <div class="cal">
+      <div class="dow"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div>
+      <div class="grid" id="grid"></div>
+    </div>
+  </section>
+
+  <section>
+    <h3 class="list-head" id="list-head">Games this month</h3>
+    <ul class="games" id="games"></ul>
+  </section>
+
+  <footer class="note">
+    <p>80 of 82 games are dated: 40 home, 40 away. The last two are NBA Cup knockout games the league sets in early December, after group play.</p>
+    <p>Mid-February gap is the All-Star break. Use ← and → keys to change months.</p>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var TEAMS = {
+    ATL:["Atlanta","Hawks"], BKN:["Brooklyn","Nets"], BOS:["Boston","Celtics"], CHA:["Charlotte","Hornets"],
+    CHI:["Chicago","Bulls"], CLE:["Cleveland","Cavaliers"], DAL:["Dallas","Mavericks"], DEN:["Denver","Nuggets"],
+    DET:["Detroit","Pistons"], GSW:["Golden State","Warriors"], HOU:["Houston","Rockets"], IND:["Indiana","Pacers"],
+    LAC:["LA","Clippers"], MEM:["Memphis","Grizzlies"], MIA:["Miami","Heat"], MIL:["Milwaukee","Bucks"],
+    MIN:["Minnesota","Timberwolves"], NOP:["New Orleans","Pelicans"], NYK:["New York","Knicks"], OKC:["Oklahoma City","Thunder"],
+    ORL:["Orlando","Magic"], PHI:["Philadelphia","76ers"], PHX:["Phoenix","Suns"], POR:["Portland","Trail Blazers"],
+    SAC:["Sacramento","Kings"], SAS:["San Antonio","Spurs"], TOR:["Toronto","Raptors"], UTA:["Utah","Jazz"],
+    WAS:["Washington","Wizards"]
+  };
+
+  // date | H/A | opponent | tip (ET, 24h) | national TV | NBA Cup flag
+  var RAW = [
+    "2026-10-21|H|GSW|22:00|ESPN","2026-10-23|H|LAC|22:00|","2026-10-25|A|UTA|17:00|","2026-10-27|H|POR|23:00|NBC",
+    "2026-10-28|A|LAC|22:30|","2026-10-30|A|GSW|22:00|Prime|cup",
+    "2026-11-01|H|TOR|21:00|","2026-11-02|H|MIA|22:00|","2026-11-04|A|SAC|22:00|","2026-11-06|H|POR|22:00|Prime|cup",
+    "2026-11-08|A|DET|18:00|","2026-11-09|A|ATL|19:00|","2026-11-11|A|MIL|20:00|","2026-11-15|A|PHX|16:00|",
+    "2026-11-17|H|CHA|22:00|","2026-11-18|H|UTA|22:00|","2026-11-20|H|SAC|22:00||cup","2026-11-23|H|UTA|22:00|",
+    "2026-11-27|A|SAS|21:30|Prime|cup","2026-11-29|A|MEM|16:00|","2026-11-30|A|HOU|19:30|Peacock",
+    "2026-12-02|A|NOP|20:00|","2026-12-14|H|NOP|22:00|","2026-12-16|A|MIN|21:30|ESPN","2026-12-18|A|MIN|20:00|",
+    "2026-12-19|A|DEN|21:00|","2026-12-21|H|IND|22:00|","2026-12-23|H|DEN|22:00|Prime","2026-12-25|H|PHI|17:00|ABC",
+    "2026-12-27|H|MEM|21:00|","2026-12-29|H|HOU|22:30|NBC","2026-12-31|A|NOP|20:00|",
+    "2027-01-02|A|CHI|20:00|","2027-01-03|A|TOR|19:00|","2027-01-05|A|WAS|19:00|","2027-01-07|H|BOS|22:00|Prime",
+    "2027-01-08|H|DET|22:00|","2027-01-11|A|LAC|22:00|Peacock","2027-01-13|A|POR|22:00|","2027-01-14|H|ORL|22:00|",
+    "2027-01-17|H|MIL|21:00|","2027-01-19|A|SAC|22:00|","2027-01-21|A|GSW|22:00|Prime","2027-01-22|H|SAC|22:00|",
+    "2027-01-24|H|WAS|16:00|","2027-01-26|H|OKC|23:00|NBC","2027-01-28|A|IND|19:00|","2027-01-30|A|NYK|20:30|ABC",
+    "2027-01-31|A|CHA|19:00|",
+    "2027-02-02|A|BOS|20:00|NBC","2027-02-04|A|BKN|19:30|","2027-02-06|A|SAS|20:30|ABC","2027-02-08|A|PHX|21:30|Peacock",
+    "2027-02-10|H|LAC|22:00|ESPN","2027-02-12|H|DEN|22:30|ESPN","2027-02-16|H|CHI|22:00|","2027-02-18|H|HOU|22:00|Prime",
+    "2027-02-26|A|DEN|22:00|ESPN","2027-02-28|A|DAL|15:30|ABC",
+    "2027-03-02|A|ORL|19:00|","2027-03-04|A|PHI|19:00|Prime","2027-03-06|H|OKC|20:30|ABC","2027-03-07|H|BKN|22:30|",
+    "2027-03-11|H|NYK|22:00|Prime","2027-03-12|H|CLE|22:00|","2027-03-14|H|GSW|22:00|NBC","2027-03-16|A|POR|22:00|",
+    "2027-03-17|H|PHX|22:00|ESPN","2027-03-19|H|ATL|22:00|","2027-03-21|H|DAL|22:00|NBC","2027-03-23|A|MIA|20:00|NBC",
+    "2027-03-25|A|CLE|19:00|","2027-03-28|A|HOU|15:00|ESPN","2027-03-30|A|MEM|20:00|",
+    "2027-04-01|A|OKC|21:30|Prime","2027-04-04|H|SAS|22:00|NBC","2027-04-06|H|DAL|22:00|","2027-04-07|H|MIN|22:00|ESPN",
+    "2027-04-09|H|MIN|22:00|","2027-04-11|H|PHX|20:30|"
+  ];
+
+  var games = RAW.map(function (r, i) {
+    var p = r.split("|"), d = p[0].split("-");
+    var t = p[3].split(":");
+    return { n: i + 1, key: p[0], y: +d[0], m: +d[1] - 1, d: +d[2], home: p[1] === "H", opp: p[2],
+             etMin: (+t[0]) * 60 + (+t[1]), tv: p[4] || "", cup: p[5] === "cup" };
+  });
+  var byDate = {};
+  games.forEach(function (g) { byDate[g.key] = g; });
+
+  var MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  var DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  var SEASON = [[2026,9],[2026,10],[2026,11],[2027,0],[2027,1],[2027,2],[2027,3]];
+  var OFFSET = { ET: 0, CT: -60, PT: -180 };
+
+  var tz = "CT";
+  try { var s = localStorage.getItem("lal-tz"); if (s && OFFSET.hasOwnProperty(s)) tz = s; } catch (e) {}
+
+  var now = new Date();
+  var todayKey = now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate());
+  var idx = 0;
+  SEASON.forEach(function (ym, i) { if (ym[0] === now.getFullYear() && ym[1] === now.getMonth()) idx = i; });
+  if (now > new Date(2027, 3, 30)) idx = SEASON.length - 1;
+
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function fmtTime(g) {
+    var m = g.etMin + OFFSET[tz];
+    var h = Math.floor(m / 60), mm = m % 60, ap = h >= 12 ? "pm" : "am";
+    var h12 = h % 12 === 0 ? 12 : h % 12;
+    return h12 + (mm ? ":" + pad(mm) : "") + ap;
+  }
+  function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+
+  var grid = document.getElementById("grid");
+  var list = document.getElementById("games");
+
+  function renderNext() {
+    var box = document.getElementById("next");
+    var today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var g = games.find(function (x) { return new Date(x.y, x.m, x.d) >= today0; });
+    if (!g) { box.innerHTML = '<span class="label">Season complete</span><span class="what">All 80 dated games have been played.</span>'; return; }
+    var gd = new Date(g.y, g.m, g.d);
+    var days = Math.round((gd - today0) / 86400000);
+    var count = days === 0 ? "Today" : days === 1 ? "Tomorrow" : "In " + days + " days";
+    box.innerHTML = '<span class="label">Next game</span>' +
+      '<span class="what">' + (g.home ? "vs " : "at ") + TEAMS[g.opp][0] + " " + TEAMS[g.opp][1] + '</span>' +
+      '<span class="when">' + DOW[gd.getDay()] + ", " + MONTHS[g.m].slice(0,3) + " " + g.d + " · " + fmtTime(g) + " " + tz + (g.tv ? " · " + g.tv : "") + '</span>' +
+      '<span class="count">' + count + '</span>';
+  }
+
+  function render() {
+    var y = SEASON[idx][0], m = SEASON[idx][1];
+    document.getElementById("month-name").textContent = MONTHS[m] + " " + y;
+    document.getElementById("prev").disabled = idx === 0;
+    document.getElementById("next-btn").disabled = idx === SEASON.length - 1;
+
+    var monthGames = games.filter(function (g) { return g.y === y && g.m === m; });
+    var h = monthGames.filter(function (g) { return g.home; }).length;
+    document.getElementById("month-sum").textContent =
+      monthGames.length + " games · " + h + " home · " + (monthGames.length - h) + " away";
+    document.getElementById("list-head").textContent = MONTHS[m] + " games · times in " + tz;
+
+    grid.innerHTML = "";
+    var first = new Date(y, m, 1).getDay();
+    var daysIn = new Date(y, m + 1, 0).getDate();
+    for (var b = 0; b < first; b++) grid.appendChild(el("div", "day blank"));
+    for (var d = 1; d <= daysIn; d++) {
+      var key = y + "-" + pad(m + 1) + "-" + pad(d);
+      var g = byDate[key];
+      var cell;
+      if (g) {
+        cell = el("button", "day game " + (g.home ? "home" : "away") + (g.cup ? " cup" : ""));
+        cell.type = "button";
+        cell.dataset.key = key;
+        cell.setAttribute("aria-label", MONTHS[m] + " " + d + ": " + (g.home ? "home vs " : "away at ") + TEAMS[g.opp][0] + " " + TEAMS[g.opp][1] + ", " + fmtTime(g) + " " + tz);
+        cell.innerHTML = '<span class="num">' + d + '</span>' +
+          '<span class="opp"><small>' + (g.home ? "vs" : "@") + '</small>' + g.opp + '</span>' +
+          '<span class="tm">' + fmtTime(g) + '</span>' +
+          '<span class="tag">' + (g.home ? "Home" : "Away") + '</span>';
+        cell.addEventListener("click", onPick);
+      } else {
+        cell = el("div", "day", '<span class="num">' + d + '</span>');
+      }
+      if (key === todayKey) cell.classList.add("today");
+      grid.appendChild(cell);
+    }
+
+    list.innerHTML = "";
+    if (!monthGames.length) {
+      list.appendChild(el("li", "empty", "No games this month."));
+    }
+    monthGames.forEach(function (g) {
+      var gd = new Date(g.y, g.m, g.d);
+      var li = el("li");
+      li.id = "g-" + g.key;
+      li.innerHTML =
+        '<div class="g-date">' + MONTHS[g.m].slice(0,3) + " " + g.d + '<small>' + DOW[gd.getDay()] + '</small></div>' +
+        '<span class="pill ' + (g.home ? "home" : "away") + '">' + (g.home ? "Home" : "Away") + '</span>' +
+        '<div class="g-opp"><b>' + (g.home ? "vs " : "at ") + TEAMS[g.opp][0] + " " + TEAMS[g.opp][1] + '</b>' +
+          '<span class="venue">' + (g.home ? "Crypto.com Arena" : "Road game in " + TEAMS[g.opp][0]) +
+          (g.cup ? ' · <span class="cupnote">NBA Cup</span>' : "") + '</span></div>' +
+        '<div class="g-meta">' + fmtTime(g) + " " + tz + '<small>' + (g.tv || "Local TV") + '</small></div>';
+      list.appendChild(li);
+    });
+
+    document.querySelectorAll(".tz button").forEach(function (bt) {
+      bt.setAttribute("aria-pressed", bt.dataset.tz === tz ? "true" : "false");
+    });
+    renderNext();
+  }
+
+  function onPick(e) {
+    var key = e.currentTarget.dataset.key;
+    document.querySelectorAll(".day.selected").forEach(function (c) { c.classList.remove("selected"); });
+    e.currentTarget.classList.add("selected");
+    var row = document.getElementById("g-" + key);
+    if (row) {
+      row.classList.add("flash");
+      row.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest" });
+      setTimeout(function () { row.classList.remove("flash"); }, 1600);
+    }
+  }
+
+  function go(step) {
+    var n = idx + step;
+    if (n < 0 || n >= SEASON.length) return;
+    idx = n; render();
+  }
+  document.getElementById("prev").addEventListener("click", function () { go(-1); });
+  document.getElementById("next-btn").addEventListener("click", function () { go(1); });
+  document.addEventListener("keydown", function (e) {
+    if (e.target.closest && e.target.closest("input,textarea")) return;
+    if (e.key === "ArrowLeft") go(-1);
+    if (e.key === "ArrowRight") go(1);
+  });
+  document.querySelectorAll(".tz button").forEach(function (bt) {
+    bt.addEventListener("click", function () {
+      tz = bt.dataset.tz;
+      try { localStorage.setItem("lal-tz", tz); } catch (e) {}
+      render();
+    });
+  });
+
+  render();
+})();
+</script>
+
+</body>
+</html>
